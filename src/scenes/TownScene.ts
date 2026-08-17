@@ -4,10 +4,14 @@ import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle } from '../systems/DayNightCycle';
 import { CHARACTER_CLASSES } from '../data/characters';
+import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
 
 const MAP_COLS = 40;
 const MAP_ROWS = 28;
 const MOVE_SPEED = 120;
+const NPC_SPEED = 45;
+const NPC_ARRIVE_DIST = 4;
+const INTERACT_DIST = 40;
 
 interface Building {
   name: string;
@@ -19,6 +23,12 @@ interface Building {
   restores: Partial<Record<NeedKey, number>>;
   sprite?: Phaser.GameObjects.Image;
   zone?: Phaser.GameObjects.Zone;
+}
+
+interface NpcRuntime {
+  spec: NpcSpec;
+  sprite: Phaser.Physics.Arcade.Sprite;
+  label: Phaser.GameObjects.Text;
 }
 
 const PATH_RECTS = [
@@ -35,7 +45,10 @@ export class TownScene extends Phaser.Scene {
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private buildings: Building[] = [];
+  private buildingGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private npcs: NpcRuntime[] = [];
   private nearBuilding: Building | null = null;
+  private nearNpc: NpcRuntime | null = null;
   private overlay!: Phaser.GameObjects.Rectangle;
   private promptText!: Phaser.GameObjects.Text;
   private dialogContainer?: Phaser.GameObjects.Container;
@@ -58,15 +71,23 @@ export class TownScene extends Phaser.Scene {
     const worldH = MAP_ROWS * TILE_SIZE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
 
+    this.buildingGroup = this.physics.add.staticGroup();
     this.drawGround();
     this.setupBuildings();
+    this.setupNpcs();
 
     this.player = this.physics.add.sprite(worldW / 2, worldH / 2 + 40, `char-${cls.id}`);
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(10, 8).setOffset(3, 15);
 
-    this.buildings.forEach((b) => {
-      if (b.sprite) this.physics.add.collider(this.player, b.sprite);
+    this.physics.add.collider(this.player, this.buildingGroup);
+    // NPCs collide with buildings (so they don't clip through walls while
+    // walking their schedule) but not with the player: a solid collider here
+    // would fight the player for space right at a door-zone target — an NPC
+    // stationed there gets shoved just far enough to miss the interact-range
+    // check the instant the player closes in, making them un-talkable.
+    this.npcs.forEach((npc) => {
+      this.physics.add.collider(npc.sprite, this.buildingGroup);
     });
 
     this.cameras.main.setBounds(0, 0, worldW, worldH);
@@ -166,6 +187,7 @@ export class TownScene extends Phaser.Scene {
       const sprite = this.physics.add.staticImage(def.x + def.w / 2, def.y + def.h / 2, key);
       sprite.setSize(def.w, def.h * 0.72).setOffset(0, def.h * 0.28);
       sprite.refreshBody();
+      this.buildingGroup.add(sprite);
 
       this.add
         .text(def.x + def.w / 2, def.y - 10, def.name, {
@@ -181,6 +203,24 @@ export class TownScene extends Phaser.Scene {
       this.physics.add.existing(zone, true);
 
       this.buildings.push({ ...def, sprite, zone });
+    });
+  }
+
+  private setupNpcs(): void {
+    NPC_SPECS.forEach((spec) => {
+      const start = getScheduleTarget(spec.schedule, this.clock.getHours());
+      const sprite = this.physics.add.sprite(start.x, start.y, `npc-${spec.id}`);
+      sprite.body!.setSize(10, 8).setOffset(3, 15);
+      const label = this.add
+        .text(start.x, start.y - 18, spec.name, {
+          fontFamily: 'monospace',
+          fontSize: '9px',
+          color: '#dfe4f2',
+          backgroundColor: '#00000088',
+          padding: { x: 2, y: 1 },
+        })
+        .setOrigin(0.5, 1);
+      this.npcs.push({ spec, sprite, label });
     });
   }
 
@@ -249,7 +289,8 @@ export class TownScene extends Phaser.Scene {
     this.clock.update(dt);
 
     this.handleMovement();
-    this.updateNearBuilding();
+    this.updateNpcs(dt);
+    this.updateNearInteractables();
     this.updateHud();
 
     const ePressed = Phaser.Input.Keyboard.JustDown(this.eKey);
@@ -257,9 +298,27 @@ export class TownScene extends Phaser.Scene {
       if (this.dialogContainer) {
         this.dialogContainer.destroy();
         this.dialogContainer = undefined;
+      } else if (this.nearNpc) {
+        this.talkToNpc(this.nearNpc);
       } else if (this.nearBuilding) {
         this.enterBuilding(this.nearBuilding);
       }
+    }
+  }
+
+  private updateNpcs(_dt: number): void {
+    for (const npc of this.npcs) {
+      const target = getScheduleTarget(npc.spec.schedule, this.clock.getHours());
+      const dx = target.x - npc.sprite.x;
+      const dy = target.y - npc.sprite.y;
+      const dist = Math.hypot(dx, dy);
+      const body = npc.sprite.body as Phaser.Physics.Arcade.Body;
+      if (dist > NPC_ARRIVE_DIST) {
+        body.setVelocity((dx / dist) * NPC_SPEED, (dy / dist) * NPC_SPEED);
+      } else {
+        body.setVelocity(0, 0);
+      }
+      npc.label.setPosition(npc.sprite.x, npc.sprite.y - 18);
     }
   }
 
@@ -280,20 +339,44 @@ export class TownScene extends Phaser.Scene {
     body.setVelocity((vx / len) * MOVE_SPEED, (vy / len) * MOVE_SPEED);
   }
 
-  private updateNearBuilding(): void {
-    let found: Building | null = null;
+  private updateNearInteractables(): void {
+    let nearestBuilding: Building | null = null;
+    let nearestBuildingDist = Infinity;
     for (const b of this.buildings) {
       if (!b.zone) continue;
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, b.zone.x, b.zone.y);
-      if (dist < 40) {
-        found = b;
-        break;
+      if (dist < INTERACT_DIST && dist < nearestBuildingDist) {
+        nearestBuilding = b;
+        nearestBuildingDist = dist;
       }
     }
-    this.nearBuilding = found;
-    if (found && !this.dialogContainer) {
-      this.promptText.setText(`Press E to enter ${found.name}`).setVisible(true);
-    } else if (!this.dialogContainer) {
+
+    let nearestNpc: NpcRuntime | null = null;
+    let nearestNpcDist = Infinity;
+    for (const npc of this.npcs) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.sprite.x, npc.sprite.y);
+      if (dist < INTERACT_DIST && dist < nearestNpcDist) {
+        nearestNpc = npc;
+        nearestNpcDist = dist;
+      }
+    }
+
+    // An NPC standing at a building's door zone can be nearer than the zone
+    // itself — prefer talking to them over entering the building they're at.
+    if (nearestNpc && nearestNpcDist <= nearestBuildingDist) {
+      this.nearBuilding = null;
+      this.nearNpc = nearestNpc;
+    } else {
+      this.nearNpc = null;
+      this.nearBuilding = nearestBuilding;
+    }
+
+    if (this.dialogContainer) return;
+    if (this.nearNpc) {
+      this.promptText.setText(`Press E to talk to ${this.nearNpc.spec.name}`).setVisible(true);
+    } else if (this.nearBuilding) {
+      this.promptText.setText(`Press E to enter ${this.nearBuilding.name}`).setVisible(true);
+    } else {
       this.promptText.setVisible(false);
     }
   }
@@ -304,6 +387,12 @@ export class TownScene extends Phaser.Scene {
     }
     this.promptText.setVisible(false);
     this.showDialog(b.name, b.flavor);
+  }
+
+  private talkToNpc(npc: NpcRuntime): void {
+    this.needs.restore('social', 8);
+    this.promptText.setVisible(false);
+    this.showDialog(npc.spec.name, npc.spec.flavor);
   }
 
   private showDialog(title: string, body: string): void {
