@@ -6,6 +6,9 @@ import { DayNightCycle } from '../systems/DayNightCycle';
 import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
 import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
 import { same, type ByAlignment } from '../data/alignment';
+import { saveGame } from '../systems/SaveSystem';
+
+const AUTOSAVE_INTERVAL_SECONDS = 10;
 
 const MAP_COLS = 40;
 const MAP_ROWS = 28;
@@ -58,6 +61,8 @@ export class TownScene extends Phaser.Scene {
   private readonly needColors: Record<NeedKey, number> = { hunger: 0xe07a3f, energy: 0x3ddc84, social: 0x6fa8ff };
   private uiCamera!: Phaser.Cameras.Scene2D.Camera;
   private alignment!: Alignment;
+  private saveTimer = 0;
+  private readonly persistOnUnload = () => this.persist();
 
   constructor() {
     super('Town');
@@ -69,6 +74,13 @@ export class TownScene extends Phaser.Scene {
     }
     const cls = gameState.selectedCharacter;
     this.alignment = cls.alignment;
+
+    const resume = gameState.resumeSave;
+    gameState.resumeSave = null; // consume — only applies to this one entry
+    if (resume && resume.characterId === cls.id) {
+      Object.assign(this.needs.values, resume.needs);
+      this.clock.restore(resume.hours, resume.day);
+    }
 
     const worldW = MAP_COLS * TILE_SIZE;
     const worldH = MAP_ROWS * TILE_SIZE;
@@ -114,6 +126,23 @@ export class TownScene extends Phaser.Scene {
     );
 
     this.buildHud(cls.name, cls.alignment);
+
+    // Persist immediately so a fresh game is resumable right away rather than
+    // only after the first autosave tick, and so a resumed game's timestamp
+    // refreshes even if the player quits before the first tick.
+    this.persist();
+    window.addEventListener('beforeunload', this.persistOnUnload);
+    this.events.once('shutdown', () => window.removeEventListener('beforeunload', this.persistOnUnload));
+  }
+
+  private persist(): void {
+    saveGame({
+      characterId: gameState.selectedCharacter!.id,
+      needs: { ...this.needs.values },
+      hours: this.clock.getHours(),
+      day: this.clock.getDay(),
+      savedAt: Date.now(),
+    });
   }
 
   private addUI<T extends Phaser.GameObjects.GameObject>(obj: T): T {
@@ -305,6 +334,12 @@ export class TownScene extends Phaser.Scene {
     this.needs.update(dt);
     this.clock.update(dt);
 
+    this.saveTimer += dt;
+    if (this.saveTimer >= AUTOSAVE_INTERVAL_SECONDS) {
+      this.saveTimer = 0;
+      this.persist();
+    }
+
     this.handleMovement();
     this.updateNpcs(dt);
     this.updateNearInteractables();
@@ -445,7 +480,7 @@ export class TownScene extends Phaser.Scene {
       bar.fillColor = this.needs.isCritical(key) ? 0xff4d4d : this.needColors[key];
     });
 
-    this.clockText.setText(`${this.clock.getClockString()} · ${this.clock.getPhase()}`);
+    this.clockText.setText(`Day ${this.clock.getDay()} · ${this.clock.getClockString()} · ${this.clock.getPhase()}`);
     const { color, alpha } = this.clock.getOverlay();
     this.overlay.setFillStyle(color, alpha);
   }

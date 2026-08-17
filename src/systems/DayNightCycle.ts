@@ -2,26 +2,44 @@ export type Phase = 'dawn' | 'day' | 'dusk' | 'night';
 
 const REAL_SECONDS_PER_GAME_DAY = 240; // 4 real minutes = 1 in-game day
 
+/** Standalone so a saved hour value can be displayed without a live DayNightCycle instance. */
+export function formatClockString(hours: number): string {
+  const h24 = Math.floor(hours);
+  const m = Math.floor((hours - h24) * 60);
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
 export class DayNightCycle {
   /** 0..24 in-game hours, starts mid-morning */
   private gameHours = 8;
+  private day = 1;
 
   update(deltaSeconds: number): void {
     const hoursPerSecond = 24 / REAL_SECONDS_PER_GAME_DAY;
-    this.gameHours = (this.gameHours + deltaSeconds * hoursPerSecond) % 24;
+    const raw = this.gameHours + deltaSeconds * hoursPerSecond;
+    this.day += Math.floor(raw / 24);
+    this.gameHours = raw % 24;
   }
 
   getHours(): number {
     return this.gameHours;
   }
 
+  getDay(): number {
+    return this.day;
+  }
+
+  /** Restores a previously saved point in time (e.g. loading a save). */
+  restore(hours: number, day: number): void {
+    this.gameHours = hours;
+    this.day = day;
+  }
+
   getClockString(): string {
-    const h24 = Math.floor(this.gameHours);
-    const m = Math.floor((this.gameHours - h24) * 60);
-    const period = h24 >= 12 ? 'PM' : 'AM';
-    let h12 = h24 % 12;
-    if (h12 === 0) h12 = 12;
-    return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+    return formatClockString(this.gameHours);
   }
 
   getPhase(): Phase {

@@ -31,6 +31,11 @@ step one of a longer-term plan toward a VR version of the same world.
   Watchman react coldly to villains: heroes get the full welcome (+40
   social at the guild, +8 talking to the Watchman), villains get the
   cold shoulder (+12 and +2). Same locations, different town.
+- **Save/load** — progress (needs, in-game time, day count, chosen
+  character) autosaves to `localStorage` every 10 seconds and on tab
+  close. Character select shows a "Continue as {name} — Day N, time"
+  banner when a save exists; picking a character and starting fresh
+  overwrites it.
 
 All art is real hand-authored pixel art: 16x24 characters (outline,
 shading, per-class silhouette/headwear), textured grass/path tiles, and
@@ -71,5 +76,5 @@ python3 tools/gen_npcs.py
 
 - More buildings / a bigger town, more NPCs
 - Deeper villain-specific mechanics (unique actions, not just reactions)
-- Save/load, day-to-day progression
+- Multiple save slots, richer day-to-day progression
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)

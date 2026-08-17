@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { CHARACTER_CLASSES, type CharacterClass } from '../data/characters';
 import { gameState } from '../state/gameState';
+import { loadGame, type SaveData } from '../systems/SaveSystem';
+import { formatClockString } from '../systems/DayNightCycle';
 
 const CARD_W = 168;
 const CARD_H = 148;
@@ -50,6 +52,47 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     this.startButton = this.createStartButton(width / 2, startY + 2 * (CARD_H + GAP) + 30);
     this.setStartEnabled(false);
+
+    const save = loadGame();
+    if (save) this.createContinueBanner(save);
+  }
+
+  private createContinueBanner(save: SaveData): void {
+    const cls = CHARACTER_CLASSES.find((c) => c.id === save.characterId);
+    if (!cls) return;
+
+    const w = 210;
+    const h = 52;
+    const x = this.scale.width - 16 - w / 2;
+    const y = 16 + h / 2;
+    const container = this.add.container(x, y);
+    const bg = this.add.rectangle(0, 0, w, h, 0x14251a, 1).setStrokeStyle(2, 0x3ddc84);
+    const label = this.add
+      .text(0, -13, `Continue as ${cls.name}`, {
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#3ddc84',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    const sub = this.add
+      .text(0, 11, `Day ${save.day} · ${formatClockString(save.hours)}`, {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#9aa4c0',
+      })
+      .setOrigin(0.5);
+
+    container.add([bg, label, sub]);
+    container.setSize(w, h);
+    container.setInteractive({ useHandCursor: true });
+    container.on('pointerover', () => bg.setFillStyle(0x1e3a26, 1));
+    container.on('pointerout', () => bg.setFillStyle(0x14251a, 1));
+    container.on('pointerdown', () => {
+      gameState.selectedCharacter = cls;
+      gameState.resumeSave = save;
+      this.scene.start('Town');
+    });
   }
 
   private createCard(cls: CharacterClass, x: number, y: number): void {
