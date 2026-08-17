@@ -26,6 +26,11 @@ step one of a longer-term plan toward a VR version of the same world.
   sealed gate → night rounds), so the town actually changes as the
   day/night clock advances. Press `E` near one to talk (restores a
   little social).
+- **Hero vs. villain actually matters** — every building and NPC has
+  alignment-aware flavor text, and the Adventurers' Guild Hall and the
+  Watchman react coldly to villains: heroes get the full welcome (+40
+  social at the guild, +8 talking to the Watchman), villains get the
+  cold shoulder (+12 and +2). Same locations, different town.
 
 All art is real hand-authored pixel art: 16x24 characters (outline,
 shading, per-class silhouette/headwear), textured grass/path tiles, and
@@ -65,6 +70,6 @@ python3 tools/gen_npcs.py
 ## Roadmap
 
 - More buildings / a bigger town, more NPCs
-- Villain-specific mechanics (heroes and villains play differently)
+- Deeper villain-specific mechanics (unique actions, not just reactions)
 - Save/load, day-to-day progression
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)

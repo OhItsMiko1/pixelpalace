@@ -3,8 +3,9 @@ import { TILE_SIZE } from '../gfx/constants';
 import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle } from '../systems/DayNightCycle';
-import { CHARACTER_CLASSES } from '../data/characters';
+import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
 import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
+import { same, type ByAlignment } from '../data/alignment';
 
 const MAP_COLS = 40;
 const MAP_ROWS = 28;
@@ -19,8 +20,8 @@ interface Building {
   y: number;
   w: number;
   h: number;
-  flavor: string;
-  restores: Partial<Record<NeedKey, number>>;
+  flavor: ByAlignment<string>;
+  restores: ByAlignment<Partial<Record<NeedKey, number>>>;
   sprite?: Phaser.GameObjects.Image;
   zone?: Phaser.GameObjects.Zone;
 }
@@ -56,6 +57,7 @@ export class TownScene extends Phaser.Scene {
   private needBars: Record<NeedKey, { bar: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text }> = {} as never;
   private readonly needColors: Record<NeedKey, number> = { hunger: 0xe07a3f, energy: 0x3ddc84, social: 0x6fa8ff };
   private uiCamera!: Phaser.Cameras.Scene2D.Camera;
+  private alignment!: Alignment;
 
   constructor() {
     super('Town');
@@ -66,6 +68,7 @@ export class TownScene extends Phaser.Scene {
       gameState.selectedCharacter = CHARACTER_CLASSES[0];
     }
     const cls = gameState.selectedCharacter;
+    this.alignment = cls.alignment;
 
     const worldW = MAP_COLS * TILE_SIZE;
     const worldH = MAP_ROWS * TILE_SIZE;
@@ -137,9 +140,12 @@ export class TownScene extends Phaser.Scene {
         y: 40,
         w: 96,
         h: 80,
-        flavor:
-          'The bartender pours something fizzy and blue. "On the house — you look like you crawled out of a dungeon." Hunger and mood restored.',
-        restores: { hunger: 45, social: 30 },
+        flavor: {
+          hero: 'The bartender pours something fizzy and blue. "On the house — you look like you crawled out of a dungeon." Hunger and mood restored.',
+          villain:
+            'The bartender pours without meeting your eyes. Fast service, no small talk, no questions. Hunger and mood restored.',
+        },
+        restores: same({ hunger: 45, social: 30 }),
       },
       {
         name: 'Market Row',
@@ -147,9 +153,12 @@ export class TownScene extends Phaser.Scene {
         y: 40,
         w: 96,
         h: 72,
-        flavor:
-          'Stalls of dried mushrooms, cured meats, and suspiciously glowing potions. You grab a quick bite.',
-        restores: { hunger: 35 },
+        flavor: {
+          hero: 'Stalls of dried mushrooms, cured meats, and suspiciously glowing potions. You grab a quick bite.',
+          villain:
+            'The vendor "loses count" of your change more than once. You don\'t correct her. You grab a quick bite.',
+        },
+        restores: same({ hunger: 35 }),
       },
       {
         name: 'Your Cottage',
@@ -157,8 +166,11 @@ export class TownScene extends Phaser.Scene {
         y: 300,
         w: 88,
         h: 76,
-        flavor: 'Home. You collapse into bed for a while and feel your energy return.',
-        restores: { energy: 55 },
+        flavor: {
+          hero: 'Home. You collapse into bed for a while and feel your energy return.',
+          villain: 'Home — for now. You bar the door out of habit and feel your energy return.',
+        },
+        restores: same({ energy: 55 }),
       },
       {
         name: "Adventurers' Guild Hall",
@@ -166,9 +178,11 @@ export class TownScene extends Phaser.Scene {
         y: 300,
         w: 100,
         h: 84,
-        flavor:
-          'Old dungeon maps line the walls. A few familiar faces trade stories about the depths below town. Good company.',
-        restores: { social: 40 },
+        flavor: {
+          hero: 'Old dungeon maps line the walls. A few familiar faces trade stories about the depths below town. Good company.',
+          villain: 'Conversation dips the moment you walk in. Nobody asks you to sit. You linger near the door anyway.',
+        },
+        restores: { hero: { social: 40 }, villain: { social: 12 } },
       },
       {
         name: 'Sealed Dungeon Gate',
@@ -176,9 +190,12 @@ export class TownScene extends Phaser.Scene {
         y: 170,
         w: 90,
         h: 90,
-        flavor:
-          'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon."',
-        restores: {},
+        flavor: {
+          hero: 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon."',
+          villain:
+            'A heavy iron gate, chained shut, humming faintly. Something about the hum feels almost... familiar. A sign reads: "Closed for renovation — VR wing coming soon."',
+        },
+        restores: same({}),
       },
     ];
 
@@ -382,17 +399,18 @@ export class TownScene extends Phaser.Scene {
   }
 
   private enterBuilding(b: Building): void {
-    for (const [key, amount] of Object.entries(b.restores) as [NeedKey, number][]) {
+    const restores = b.restores[this.alignment];
+    for (const [key, amount] of Object.entries(restores) as [NeedKey, number][]) {
       this.needs.restore(key, amount);
     }
     this.promptText.setVisible(false);
-    this.showDialog(b.name, b.flavor);
+    this.showDialog(b.name, b.flavor[this.alignment]);
   }
 
   private talkToNpc(npc: NpcRuntime): void {
-    this.needs.restore('social', 8);
+    this.needs.restore('social', npc.spec.socialRestore[this.alignment]);
     this.promptText.setVisible(false);
-    this.showDialog(npc.spec.name, npc.spec.flavor);
+    this.showDialog(npc.spec.name, npc.spec.flavor[this.alignment]);
   }
 
   private showDialog(title: string, body: string): void {

@@ -1,3 +1,5 @@
+import { same, type ByAlignment } from './alignment';
+
 export interface ScheduleEntry {
   /** In-game hour (0-24) this leg of the schedule starts. Entries must be sorted ascending. */
   hour: number;
@@ -9,7 +11,8 @@ export interface ScheduleEntry {
 export interface NpcSpec {
   id: string;
   name: string;
-  flavor: string;
+  flavor: ByAlignment<string>;
+  socialRestore: ByAlignment<number>;
   /** Any order — the active entry is the one with the latest hour <= now, wrapping across midnight. */
   schedule: ScheduleEntry[];
 }
@@ -27,7 +30,8 @@ export const NPC_SPECS: NpcSpec[] = [
   {
     id: 'baker',
     name: 'Greta the Baker',
-    flavor: '"Fresh bread, still warm. Don\'t tell the mice."',
+    flavor: same('"Fresh bread, still warm. Don\'t tell the mice."'),
+    socialRestore: same(8),
     schedule: [
       { hour: 7, ...MARKET_DOOR, label: 'tending the market stall' },
       { hour: 19, ...WEST_CROSSROADS, label: 'heading home for the night' },
@@ -36,7 +40,11 @@ export const NPC_SPECS: NpcSpec[] = [
   {
     id: 'barkeep',
     name: 'Sella the Barkeep',
-    flavor: '"Same order as always? I remember faces, not names."',
+    flavor: {
+      hero: '"Same order as always? I remember faces, not names."',
+      villain: '"Same order as always? I don\'t ask where the coin comes from."',
+    },
+    socialRestore: same(8),
     schedule: [
       { hour: 10, ...TAVERN_DOOR, label: 'pouring drinks at the tavern' },
       { hour: 23, ...EAST_CROSSROADS, label: 'closing up for the night' },
@@ -45,7 +53,11 @@ export const NPC_SPECS: NpcSpec[] = [
   {
     id: 'watchman',
     name: 'Watchman Bram',
-    flavor: '"Gate\'s still sealed. Still humming. Still not my problem — yet."',
+    flavor: {
+      hero: '"Gate\'s still sealed. Still humming. Still not my problem — yet."',
+      villain: '"Don\'t linger. Gate\'s still sealed, and so is my patience for your sort."',
+    },
+    socialRestore: { hero: 8, villain: 2 },
     schedule: [
       { hour: 6, ...GUILD_DOOR, label: 'starting rounds at the guild hall' },
       { hour: 12, ...EAST_CROSSROADS, label: 'patrolling the crossroads' },
