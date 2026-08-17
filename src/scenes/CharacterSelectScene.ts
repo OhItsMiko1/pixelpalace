@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { CHARACTER_CLASSES, type CharacterClass } from '../data/characters';
-import { generateCharacterTexture } from '../gfx/textures';
 import { gameState } from '../state/gameState';
 
 const CARD_W = 168;
@@ -36,10 +35,6 @@ export class CharacterSelectScene extends Phaser.Scene {
         color: '#b8c0d8',
       })
       .setOrigin(0.5);
-
-    for (const cls of CHARACTER_CLASSES) {
-      generateCharacterTexture(this, `char-${cls.id}`, cls);
-    }
 
     const gridW = COLS * CARD_W + (COLS - 1) * GAP;
     const startX = width / 2 - gridW / 2 + CARD_W / 2;

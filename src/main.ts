@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BootScene } from './scenes/BootScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { TownScene } from './scenes/TownScene';
 
@@ -16,5 +17,5 @@ new Phaser.Game({
       debug: false,
     },
   },
-  scene: [CharacterSelectScene, TownScene],
+  scene: [BootScene, CharacterSelectScene, TownScene],
 });

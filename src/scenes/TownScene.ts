@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { generateBuildingTexture, generateCharacterTexture, generateGrassTile, generatePathTile, TILE_SIZE } from '../gfx/textures';
+import { TILE_SIZE } from '../gfx/constants';
 import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle } from '../systems/DayNightCycle';
@@ -53,10 +53,6 @@ export class TownScene extends Phaser.Scene {
       gameState.selectedCharacter = CHARACTER_CLASSES[0];
     }
     const cls = gameState.selectedCharacter;
-
-    generateGrassTile(this, 'tile-grass');
-    generatePathTile(this, 'tile-path');
-    generateCharacterTexture(this, `char-${cls.id}`, cls);
 
     const worldW = MAP_COLS * TILE_SIZE;
     const worldH = MAP_ROWS * TILE_SIZE;
@@ -165,18 +161,8 @@ export class TownScene extends Phaser.Scene {
       },
     ];
 
-    const palette = [
-      { wallColor: 0x8a5a3c, roofColor: 0x5c2e1a, doorColor: 0x3a2010 },
-      { wallColor: 0xb08e57, roofColor: 0x7a5230, doorColor: 0x4a2f18 },
-      { wallColor: 0x6a7d9c, roofColor: 0x38455c, doorColor: 0x1f2733 },
-      { wallColor: 0x8f6a9c, roofColor: 0x4f3059, doorColor: 0x2a1a30 },
-      { wallColor: 0x555a66, roofColor: 0x2a2d33, doorColor: 0x14161a },
-    ];
-
     defs.forEach((def, i) => {
       const key = `bld-${i}`;
-      const p = palette[i % palette.length];
-      generateBuildingTexture(this, { key, width: def.w, height: def.h, ...p });
       const sprite = this.physics.add.staticImage(def.x + def.w / 2, def.y + def.h / 2, key);
       sprite.setSize(def.w, def.h * 0.72).setOffset(0, def.h * 0.28);
       sprite.refreshBody();
