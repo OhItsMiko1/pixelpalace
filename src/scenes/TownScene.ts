@@ -5,6 +5,8 @@ import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle, type Phase } from '../systems/DayNightCycle';
 import { ReputationSystem } from '../systems/ReputationSystem';
 import { CurrencySystem } from '../systems/CurrencySystem';
+import { JobSystem } from '../systems/JobSystem';
+import { JOBS } from '../data/jobs';
 import { QuestSystem } from '../systems/QuestSystem';
 import type { Quest } from '../data/quests';
 import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
@@ -79,14 +81,17 @@ export class TownScene extends Phaser.Scene {
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private eKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
+  private jKey!: Phaser.Input.Keyboard.Key;
   private shopKeys: Phaser.Input.Keyboard.Key[] = [];
   private timeSkipKey?: Phaser.Input.Keyboard.Key;
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private reputation = new ReputationSystem();
   private currency = new CurrencySystem();
+  private jobs = new JobSystem();
   private quests!: QuestSystem;
   private goldText!: Phaser.GameObjects.Text;
+  private jobPromptText!: Phaser.GameObjects.Text;
   private activeShopBuilding?: Building;
   private wasCritical: Record<NeedKey, boolean> = { hunger: false, energy: false, social: false };
   private reputationText!: Phaser.GameObjects.Text;
@@ -130,6 +135,7 @@ export class TownScene extends Phaser.Scene {
       // Older saves predate reputation/gold — default rather than resuming `undefined`.
       this.reputation.value = resume.reputation ?? this.reputation.value;
       this.currency.value = resume.gold ?? this.currency.value;
+      this.jobs.lastWorkedDay = resume.lastWorkedDay ?? null;
       questProgress = resume.quests;
     }
     this.quests = new QuestSystem(this.alignment, questProgress);
@@ -171,6 +177,7 @@ export class TownScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as never;
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
     this.shopKeys = [
       this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
@@ -208,6 +215,7 @@ export class TownScene extends Phaser.Scene {
       reputation: this.reputation.value,
       quests: this.quests.serialize(),
       gold: this.currency.value,
+      lastWorkedDay: this.jobs.lastWorkedDay,
       savedAt: Date.now(),
     });
   }
@@ -473,6 +481,8 @@ export class TownScene extends Phaser.Scene {
           color: '#3ddc84',
           backgroundColor: '#00000088',
           padding: { x: 8, y: 4 },
+          wordWrap: { width: Math.min(this.scale.width - 60, 500) },
+          align: 'center',
         })
         .setOrigin(0.5)
         .setDepth(150)
@@ -532,6 +542,20 @@ export class TownScene extends Phaser.Scene {
         .setDepth(100)
         .setVisible(false),
     );
+
+    this.jobPromptText = this.addUI(
+      this.add
+        .text(this.scale.width / 2, this.scale.height - 54, '', {
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          color: '#0b1a10',
+          backgroundColor: '#ffd166',
+          padding: { x: 8, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setDepth(100)
+        .setVisible(false),
+    );
   }
 
   update(_time: number, deltaMs: number): void {
@@ -559,6 +583,7 @@ export class TownScene extends Phaser.Scene {
     this.handleMovement();
     this.updateNpcs(dt);
     this.updateNearInteractables();
+    this.updateJobPrompt();
     this.updateHud();
 
     const ePressed = Phaser.Input.Keyboard.JustDown(this.eKey);
@@ -588,6 +613,11 @@ export class TownScene extends Phaser.Scene {
       } else {
         this.showQuestLog();
       }
+    }
+
+    const jPressed = Phaser.Input.Keyboard.JustDown(this.jKey);
+    if (jPressed && !this.dialogContainer && !this.questLogContainer) {
+      this.tryWork();
     }
   }
 
@@ -670,6 +700,38 @@ export class TownScene extends Phaser.Scene {
     } else {
       this.promptText.setVisible(false);
     }
+  }
+
+  private updateJobPrompt(): void {
+    if (this.dialogContainer || this.questLogContainer) {
+      this.jobPromptText.setVisible(false);
+      return;
+    }
+    const job = JOBS[this.alignment];
+    const atJobBuilding = this.nearBuilding?.id === job.buildingId;
+    const phaseOk = !job.requiresPhase || this.clock.getPhase() === job.requiresPhase;
+    if (!atJobBuilding || !phaseOk) {
+      this.jobPromptText.setVisible(false);
+      return;
+    }
+    if (this.jobs.canWork(this.clock.getDay())) {
+      this.jobPromptText.setText(`Press J: ${job.actionLabel} (+${job.gold}g)`).setVisible(true);
+    } else {
+      this.jobPromptText.setText('Already worked today').setVisible(true);
+    }
+  }
+
+  private tryWork(): void {
+    const job = JOBS[this.alignment];
+    if (this.nearBuilding?.id !== job.buildingId) return;
+    if (job.requiresPhase && this.clock.getPhase() !== job.requiresPhase) return;
+    if (!this.jobs.canWork(this.clock.getDay())) {
+      this.showToast('Already worked today.');
+      return;
+    }
+    this.jobs.work(this.clock.getDay());
+    this.currency.earn(job.gold);
+    this.showToast(`${job.successText} +${job.gold} gold`);
   }
 
   private get interactionContext(): InteractionContext {
