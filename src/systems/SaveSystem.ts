@@ -16,6 +16,8 @@ export interface SaveData {
   quests?: QuestProgress;
   /** Added after v1 shipped, same caveat as `reputation` — read with `??`. */
   gold?: number;
+  /** Added after v1 shipped, same caveat as `reputation`. Null means never worked. */
+  lastWorkedDay?: number | null;
   savedAt: number;
 }
 

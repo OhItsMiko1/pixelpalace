@@ -48,14 +48,20 @@ step one of a longer-term plan toward a VR version of the same world.
   been playing has a compounding effect, and its label is
   alignment-flavored (heroes range Unknown → Beloved, villains
   Forgettable → Notorious).
-- **Gold** — a simple currency, starts at 15 and earned from completing
-  quests. **Market Row** doubles as a shop: on top of its usual free
-  bite, walk in and press `1`/`2`/`3` to buy a Hot Meal, a Traveler's
-  Tonic, or a Charm Trinket, each restoring a different need. Insufficient
-  gold just fails the purchase with a toast, no penalty.
-- **Save/load** — progress (needs, reputation, quest progress, gold,
-  in-game time, day count, chosen character) autosaves to `localStorage`
-  every 10 seconds and on tab close. Character select shows a "Continue
+- **Gold** — a simple currency, starts at 15, earned from quests and from
+  a repeatable job. **Market Row** doubles as a shop: on top of its usual
+  free bite, walk in and press `1`/`2`/`3` to buy a Hot Meal, a
+  Traveler's Tonic, or a Charm Trinket, each restoring a different need.
+  Insufficient gold just fails the purchase with a toast, no penalty.
+- **Jobs** — a reliable, repeatable way to earn gold once the quests run
+  out: heroes can **Take a Bounty** at the Guild Hall (daytime only,
+  +12 gold), villains can **Pick a Pocket** at Market Row (any time,
+  +12 gold). Once per in-game day each — a HUD prompt shows when it's
+  available and switches to "Already worked today" on cooldown.
+- **Save/load** — progress (needs, reputation, quest progress, gold, job
+  cooldown, in-game time, day count, chosen character) autosaves to
+  `localStorage` every 10 seconds and on tab close. Character select
+  shows a "Continue
   as {name} — Day N, time" banner when a save exists; picking a
   character and starting fresh overwrites it.
 
