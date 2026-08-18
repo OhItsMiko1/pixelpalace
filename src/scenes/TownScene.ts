@@ -4,6 +4,8 @@ import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle, type Phase } from '../systems/DayNightCycle';
 import { ReputationSystem } from '../systems/ReputationSystem';
+import { QuestSystem } from '../systems/QuestSystem';
+import type { Quest } from '../data/quests';
 import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
 import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
 import { same, type ByAlignment } from '../data/alignment';
@@ -31,6 +33,8 @@ const NPC_ARRIVE_DIST = 4;
 const INTERACT_DIST = 40;
 
 interface Building {
+  /** Stable id for quest targeting — see data/quests.ts QuestStep.targetId. */
+  id: string;
   name: string;
   x: number; // top-left, world px
   y: number;
@@ -59,12 +63,18 @@ export class TownScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private eKey!: Phaser.Input.Keyboard.Key;
+  private qKey!: Phaser.Input.Keyboard.Key;
   private timeSkipKey?: Phaser.Input.Keyboard.Key;
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private reputation = new ReputationSystem();
+  private quests!: QuestSystem;
   private wasCritical: Record<NeedKey, boolean> = { hunger: false, energy: false, social: false };
   private reputationText!: Phaser.GameObjects.Text;
+  private questTrackerText!: Phaser.GameObjects.Text;
+  private questLogContainer?: Phaser.GameObjects.Container;
+  private toastText!: Phaser.GameObjects.Text;
+  private toastTimer = 0;
   private buildings: Building[] = [];
   private buildingGroup!: Phaser.Physics.Arcade.StaticGroup;
   private npcs: NpcRuntime[] = [];
@@ -94,12 +104,15 @@ export class TownScene extends Phaser.Scene {
 
     const resume = gameState.resumeSave;
     gameState.resumeSave = null; // consume — only applies to this one entry
+    let questProgress;
     if (resume && resume.characterId === cls.id) {
       Object.assign(this.needs.values, resume.needs);
       this.clock.restore(resume.hours, resume.day);
       // Older saves predate reputation — default rather than resuming `undefined`.
       this.reputation.value = resume.reputation ?? this.reputation.value;
+      questProgress = resume.quests;
     }
+    this.quests = new QuestSystem(this.alignment, questProgress);
 
     const worldW = MAP_COLS * TILE_SIZE;
     const worldH = MAP_ROWS * TILE_SIZE;
@@ -137,6 +150,7 @@ export class TownScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as never;
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     // Dev-only: a full in-game day takes 4 real minutes, which makes manually
     // testing time-gated content (villain night scavenging, hero day training)
     // tedious. Stripped from production builds by the import.meta.env.DEV guard.
@@ -167,6 +181,7 @@ export class TownScene extends Phaser.Scene {
       hours: this.clock.getHours(),
       day: this.clock.getDay(),
       reputation: this.reputation.value,
+      quests: this.quests.serialize(),
       savedAt: Date.now(),
     });
   }
@@ -190,6 +205,7 @@ export class TownScene extends Phaser.Scene {
   private setupBuildings(): void {
     const defs: Omit<Building, 'sprite' | 'zone'>[] = [
       {
+        id: 'tavern',
         name: 'The Sleepy Slime Tavern',
         x: 40,
         y: 40,
@@ -203,6 +219,7 @@ export class TownScene extends Phaser.Scene {
         restores: same({ hunger: 45, social: 30 }),
       },
       {
+        id: 'market',
         name: 'Market Row',
         x: 200,
         y: 40,
@@ -216,6 +233,7 @@ export class TownScene extends Phaser.Scene {
         restores: same({ hunger: 35 }),
       },
       {
+        id: 'cottage',
         name: 'Your Cottage',
         x: 40,
         y: 300,
@@ -231,6 +249,7 @@ export class TownScene extends Phaser.Scene {
         // Heroes get an exclusive bonus during the day: the guild trains them,
         // not just hosts them. Villains get the same cold reception regardless
         // of time — this is a hero-only mechanic, not a bigger number.
+        id: 'guild',
         name: "Adventurers' Guild Hall",
         x: 200,
         y: 300,
@@ -251,6 +270,7 @@ export class TownScene extends Phaser.Scene {
         // Villains get an exclusive action heroes never see: scavenging the
         // gate after dark. Same building, same door — the mechanic itself is
         // alignment + time gated, not just flavor text.
+        id: 'gate',
         name: 'Sealed Dungeon Gate',
         x: 460,
         y: 170,
@@ -269,6 +289,7 @@ export class TownScene extends Phaser.Scene {
           alignment === 'villain' && phase === 'night' ? { hunger: 15, energy: 15 } : {},
       },
       {
+        id: 'forge',
         name: 'The Rusty Anvil',
         x: 420,
         y: 300,
@@ -366,6 +387,45 @@ export class TownScene extends Phaser.Scene {
         .setDepth(100),
     );
 
+    this.questTrackerText = this.addUI(
+      this.add
+        .text(10, 120, '', {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: '#ffe9a8',
+          backgroundColor: '#00000066',
+          padding: { x: 4, y: 2 },
+          wordWrap: { width: 220 },
+        })
+        .setDepth(100),
+    );
+
+    this.toastText = this.addUI(
+      this.add
+        .text(this.scale.width / 2, 60, '', {
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          color: '#3ddc84',
+          backgroundColor: '#00000088',
+          padding: { x: 8, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setDepth(150)
+        .setAlpha(0),
+    );
+
+    this.addUI(
+      this.add
+        .text(10, this.scale.height - 20, 'Q: Quest Log', {
+          fontFamily: 'monospace',
+          fontSize: '10px',
+          color: '#9aa4c0',
+          backgroundColor: '#00000066',
+          padding: { x: 4, y: 2 },
+        })
+        .setDepth(100),
+    );
+
     this.clockText = this.addUI(
       this.add
         .text(this.scale.width - 10, 10, '', {
@@ -420,6 +480,11 @@ export class TownScene extends Phaser.Scene {
     }
     this.updateReputationFromNeeds();
 
+    if (this.toastTimer > 0) {
+      this.toastTimer -= dt;
+      if (this.toastTimer <= 0) this.toastText.setAlpha(0);
+    }
+
     this.saveTimer += dt;
     if (this.saveTimer >= AUTOSAVE_INTERVAL_SECONDS) {
       this.saveTimer = 0;
@@ -432,7 +497,7 @@ export class TownScene extends Phaser.Scene {
     this.updateHud();
 
     const ePressed = Phaser.Input.Keyboard.JustDown(this.eKey);
-    if (ePressed) {
+    if (ePressed && !this.questLogContainer) {
       if (this.dialogContainer) {
         this.dialogContainer.destroy();
         this.dialogContainer = undefined;
@@ -440,6 +505,16 @@ export class TownScene extends Phaser.Scene {
         this.talkToNpc(this.nearNpc);
       } else if (this.nearBuilding) {
         this.enterBuilding(this.nearBuilding);
+      }
+    }
+
+    const qPressed = Phaser.Input.Keyboard.JustDown(this.qKey);
+    if (qPressed && !this.dialogContainer) {
+      if (this.questLogContainer) {
+        this.questLogContainer.destroy();
+        this.questLogContainer = undefined;
+      } else {
+        this.showQuestLog();
       }
     }
   }
@@ -467,7 +542,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private handleMovement(): void {
-    if (this.dialogContainer) {
+    if (this.dialogContainer || this.questLogContainer) {
       this.player.setVelocity(0, 0);
       return;
     }
@@ -542,6 +617,7 @@ export class TownScene extends Phaser.Scene {
     this.reputation.adjust(1);
     this.promptText.setVisible(false);
     this.showDialog(b.name, resolve(b.flavor, ctx));
+    this.handleQuestResult(this.quests.notify('visit', b.id, ctx.phase));
   }
 
   private talkToNpc(npc: NpcRuntime): void {
@@ -549,6 +625,77 @@ export class TownScene extends Phaser.Scene {
     this.reputation.adjust(1);
     this.promptText.setVisible(false);
     this.showDialog(npc.spec.name, npc.spec.flavor[this.alignment]);
+    this.handleQuestResult(this.quests.notify('talk', npc.spec.id, this.clock.getPhase()));
+  }
+
+  private handleQuestResult(result: ReturnType<QuestSystem['notify']>): void {
+    if (result.questCompleted) {
+      const quest = result.questCompleted;
+      this.reputation.adjust(quest.reward.reputation);
+      if (quest.reward.needs) this.applyRestores(quest.reward.needs);
+      this.showToast(`Quest complete: ${quest.name}! +${quest.reward.reputation} reputation`);
+    } else if (result.stepAdvanced) {
+      this.showToast('Objective complete!');
+    }
+  }
+
+  private showToast(text: string): void {
+    this.toastText.setText(text).setAlpha(1);
+    this.toastTimer = 2.5;
+  }
+
+  private showQuestLog(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const boxW = Math.min(w - 80, 440);
+    const questsList = this.quests.getAllQuests();
+    const lineH = 20;
+    const activeStep = this.quests.getActiveStep();
+    const boxH = 90 + questsList.length * lineH + (activeStep ? 40 : 20);
+
+    const container = this.addUI(this.add.container(w / 2, h / 2).setDepth(210));
+    const bg = this.add.rectangle(0, 0, boxW, boxH, 0x14141c, 0.97).setStrokeStyle(2, 0xffe9a8);
+    const title = this.add
+      .text(0, -boxH / 2 + 20, 'Quest Log', { fontFamily: 'monospace', fontSize: '16px', color: '#ffe9a8', fontStyle: 'bold' })
+      .setOrigin(0.5);
+
+    const rows: Phaser.GameObjects.Text[] = [];
+    questsList.forEach((quest: Quest, i) => {
+      const completed = this.quests.isCompleted(quest.id);
+      const active = this.quests.getActiveQuest()?.id === quest.id;
+      const status = completed ? '✓' : active ? '▶' : '·';
+      const color = completed ? '#3ddc84' : active ? '#ffe9a8' : '#5a6180';
+      const row = this.add
+        .text(-boxW / 2 + 20, -boxH / 2 + 48 + i * lineH, `${status} ${quest.name}`, {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color,
+        })
+        .setOrigin(0, 0);
+      rows.push(row);
+    });
+
+    const objectiveText = this.add
+      .text(
+        0,
+        boxH / 2 - (activeStep ? 40 : 26),
+        activeStep ? `Objective: ${activeStep.text}` : 'All quests complete!',
+        {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: '#dfe4f2',
+          wordWrap: { width: boxW - 40 },
+          align: 'center',
+        },
+      )
+      .setOrigin(0.5, 0);
+
+    const hint = this.add
+      .text(0, boxH / 2 - 14, 'Press Q to close', { fontFamily: 'monospace', fontSize: '10px', color: '#9aa4c0' })
+      .setOrigin(0.5);
+
+    container.add([bg, title, ...rows, objectiveText, hint]);
+    this.questLogContainer = container;
   }
 
   private showDialog(title: string, body: string): void {
@@ -596,6 +743,12 @@ export class TownScene extends Phaser.Scene {
 
     this.reputationText.setText(
       `Reputation: ${this.reputation.getLabel(this.alignment)} (${Math.round(this.reputation.value)})`,
+    );
+
+    const activeQuest = this.quests.getActiveQuest();
+    const activeStep = this.quests.getActiveStep();
+    this.questTrackerText.setText(
+      activeQuest && activeStep ? `Quest: ${activeQuest.name}\n${activeStep.text}` : 'All quests complete!',
     );
 
     this.clockText.setText(`Day ${this.clock.getDay()} · ${this.clock.getClockString()} · ${this.clock.getPhase()}`);

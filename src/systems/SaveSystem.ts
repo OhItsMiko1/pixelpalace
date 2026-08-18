@@ -1,4 +1,5 @@
 import type { NeedKey } from './NeedsSystem';
+import type { QuestProgress } from './QuestSystem';
 
 const STORAGE_KEY = 'pixelpalace-save-v1';
 const SAVE_VERSION = 1;
@@ -11,6 +12,8 @@ export interface SaveData {
   day: number;
   /** Added after v1 shipped — saves written before that predate this field despite the type; read with `??`. */
   reputation: number;
+  /** Added after v1 shipped, same caveat as `reputation` — read with `??` / an `undefined` check. */
+  quests?: QuestProgress;
   savedAt: number;
 }
 
