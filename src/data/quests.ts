@@ -81,18 +81,6 @@ export const QUEST_SPECS: Quest[] = [
     reward: { reputation: 10, needs: { social: 20, energy: 20 }, gold: 20 },
   },
   {
-    id: 'hero-old-scrolls-new-trouble',
-    alignment: 'hero',
-    name: 'Old Scrolls, New Trouble',
-    summary: 'Mira found something in the archives worth a second look — and Silas might know more than he lets on.',
-    steps: [
-      { type: 'talk', targetId: 'mira', text: 'Ask Mira about the old books at the Study.' },
-      { type: 'talk', targetId: 'silas', text: 'See what Silas knows about the well.' },
-      { type: 'visit', targetId: 'well', text: 'Take a look at the well yourself.' },
-    ],
-    reward: { reputation: 10, needs: { social: 20, energy: 20 } },
-  },
-  {
     id: 'villain-first-impressions',
     alignment: 'villain',
     name: 'First Impressions',
@@ -139,17 +127,5 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'talk', targetId: 'mira', text: 'Make Mira forget she ever saw you.' },
     ],
     reward: { reputation: 10, needs: { social: 20, hunger: 20 }, gold: 20 },
-  },
-  {
-    id: 'villain-water-under-the-bridge',
-    alignment: 'villain',
-    name: 'Water Under the Bridge',
-    summary: "Silas is hiding something at that well, and Mira's about to find out the hard way.",
-    steps: [
-      { type: 'talk', targetId: 'silas', text: "Lean on Silas for what he's not telling you." },
-      { type: 'visit', targetId: 'well', text: 'Check the well after dark.', requiresPhase: 'night' },
-      { type: 'talk', targetId: 'mira', text: 'Make Mira forget she ever saw you.' },
-    ],
-    reward: { reputation: 10, needs: { social: 20, hunger: 20 } },
   },
 ];
