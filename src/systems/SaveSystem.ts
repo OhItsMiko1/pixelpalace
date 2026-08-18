@@ -9,6 +9,8 @@ export interface SaveData {
   needs: Record<NeedKey, number>;
   hours: number;
   day: number;
+  /** Added after v1 shipped — saves written before that predate this field despite the type; read with `??`. */
+  reputation: number;
   savedAt: number;
 }
 

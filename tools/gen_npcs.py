@@ -14,6 +14,8 @@ NPCS = [
     {"id": "baker", "head": "headband", "skin": "#e8b98a", "outfit": "#e6d9c2", "hat": "#caa46a", "accent": "#b5482b"},
     {"id": "barkeep", "head": "headband", "skin": "#c68642", "outfit": "#5c4326", "hat": "#8a8a8a", "accent": "#c9302c"},
     {"id": "watchman", "head": "helmet", "skin": "#d8a06e", "outfit": "#233a5e", "hat": "#8a97a8", "accent": "#d9b23c"},
+    {"id": "finn", "head": "bandana", "skin": "#c68642", "outfit": "#3a2a1e", "hat": "#4a4a4a", "accent": "#d97b29"},
+    {"id": "wren", "head": "headband", "skin": "#e0ac69", "outfit": "#2fa374", "hat": "#f2d24b", "accent": "#3ddcff"},
 ]
 
 
