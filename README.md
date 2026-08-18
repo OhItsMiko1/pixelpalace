@@ -20,22 +20,32 @@ step one of a longer-term plan toward a VR version of the same world.
   screen tint that shifts accordingly.
 - **Interactions** — walk up to a building and press `E` to enter; each
   has flavor text and restores relevant needs.
-- **NPCs with schedules** — a baker, a barkeep, and a watchman each
-  follow an hour-keyed route (e.g. the baker's at the market by 7am,
-  home by 7pm; the watchman patrols guild hall → crossroads → the
-  sealed gate → night rounds), so the town actually changes as the
-  day/night clock advances. Press `E` near one to talk (restores a
-  little social).
+- **NPCs with schedules** — five townsfolk (a baker, a barkeep, a
+  watchman, a blacksmith, and a messenger kid who loops the whole map
+  all day) each follow an hour-keyed route, so the town actually
+  changes as the day/night clock advances. Press `E` near one to talk
+  (restores a little social).
 - **Hero vs. villain actually matters** — every building and NPC has
-  alignment-aware flavor text, and the Adventurers' Guild Hall and the
-  Watchman react coldly to villains: heroes get the full welcome (+40
-  social at the guild, +8 talking to the Watchman), villains get the
-  cold shoulder (+12 and +2). Same locations, different town.
-- **Save/load** — progress (needs, in-game time, day count, chosen
-  character) autosaves to `localStorage` every 10 seconds and on tab
-  close. Character select shows a "Continue as {name} — Day N, time"
-  banner when a save exists; picking a character and starting fresh
-  overwrites it.
+  alignment-aware flavor text, and two spots go further with a real
+  mechanic, not just a reaction:
+  - **Adventurers' Guild Hall** gives heroes a daytime training bonus
+    (+40 social, +15 energy) on top of the usual welcome; villains get
+    the cold shoulder (+12 social) regardless of time.
+  - **Sealed Dungeon Gate**, at night, lets *villains only* scavenge
+    through the seal for +15 hunger/energy — heroes and day-time
+    villains just get the "closed for renovation" flavor text. Same
+    door, different game depending who you are and when you show up.
+- **Reputation** — a 0-100 stat (starts at 50) that rises slightly with
+  every interaction and drops when you let a need bottom out. It scales
+  every needs restore across the board (0.75x-1.25x), so how you've
+  been playing has a compounding effect, and its label is
+  alignment-flavored (heroes range Unknown → Beloved, villains
+  Forgettable → Notorious).
+- **Save/load** — progress (needs, reputation, in-game time, day count,
+  chosen character) autosaves to `localStorage` every 10 seconds and on
+  tab close. Character select shows a "Continue as {name} — Day N,
+  time" banner when a save exists; picking a character and starting
+  fresh overwrites it.
 
 All art is real hand-authored pixel art: 16x24 characters (outline,
 shading, per-class silhouette/headwear), textured grass/path tiles, and
@@ -74,7 +84,7 @@ python3 tools/gen_npcs.py
 
 ## Roadmap
 
-- More buildings / a bigger town, more NPCs
-- Deeper villain-specific mechanics (unique actions, not just reactions)
-- Multiple save slots, richer day-to-day progression
+- Even more buildings / a bigger town, more NPCs
+- More alignment-exclusive mechanics beyond the guild hall and the gate
+- Multiple save slots, reputation-gated content
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)

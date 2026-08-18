@@ -2,11 +2,24 @@ import Phaser from 'phaser';
 import { TILE_SIZE } from '../gfx/constants';
 import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
-import { DayNightCycle } from '../systems/DayNightCycle';
+import { DayNightCycle, type Phase } from '../systems/DayNightCycle';
+import { ReputationSystem } from '../systems/ReputationSystem';
 import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
 import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
 import { same, type ByAlignment } from '../data/alignment';
 import { saveGame } from '../systems/SaveSystem';
+
+interface InteractionContext {
+  alignment: Alignment;
+  phase: Phase;
+}
+
+/** Static per-alignment content, or a resolver for content that also depends on time of day. */
+type Resolvable<T> = ByAlignment<T> | ((ctx: InteractionContext) => T);
+
+function resolve<T>(value: Resolvable<T>, ctx: InteractionContext): T {
+  return typeof value === 'function' ? (value as (ctx: InteractionContext) => T)(ctx) : value[ctx.alignment];
+}
 
 const AUTOSAVE_INTERVAL_SECONDS = 10;
 
@@ -23,8 +36,8 @@ interface Building {
   y: number;
   w: number;
   h: number;
-  flavor: ByAlignment<string>;
-  restores: ByAlignment<Partial<Record<NeedKey, number>>>;
+  flavor: Resolvable<string>;
+  restores: Resolvable<Partial<Record<NeedKey, number>>>;
   sprite?: Phaser.GameObjects.Image;
   zone?: Phaser.GameObjects.Zone;
 }
@@ -48,6 +61,9 @@ export class TownScene extends Phaser.Scene {
   private eKey!: Phaser.Input.Keyboard.Key;
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
+  private reputation = new ReputationSystem();
+  private wasCritical: Record<NeedKey, boolean> = { hunger: false, energy: false, social: false };
+  private reputationText!: Phaser.GameObjects.Text;
   private buildings: Building[] = [];
   private buildingGroup!: Phaser.Physics.Arcade.StaticGroup;
   private npcs: NpcRuntime[] = [];
@@ -80,6 +96,8 @@ export class TownScene extends Phaser.Scene {
     if (resume && resume.characterId === cls.id) {
       Object.assign(this.needs.values, resume.needs);
       this.clock.restore(resume.hours, resume.day);
+      // Older saves predate reputation — default rather than resuming `undefined`.
+      this.reputation.value = resume.reputation ?? this.reputation.value;
     }
 
     const worldW = MAP_COLS * TILE_SIZE;
@@ -141,6 +159,7 @@ export class TownScene extends Phaser.Scene {
       needs: { ...this.needs.values },
       hours: this.clock.getHours(),
       day: this.clock.getDay(),
+      reputation: this.reputation.value,
       savedAt: Date.now(),
     });
   }
@@ -202,29 +221,56 @@ export class TownScene extends Phaser.Scene {
         restores: same({ energy: 55 }),
       },
       {
+        // Heroes get an exclusive bonus during the day: the guild trains them,
+        // not just hosts them. Villains get the same cold reception regardless
+        // of time — this is a hero-only mechanic, not a bigger number.
         name: "Adventurers' Guild Hall",
         x: 200,
         y: 300,
         w: 100,
         h: 84,
-        flavor: {
-          hero: 'Old dungeon maps line the walls. A few familiar faces trade stories about the depths below town. Good company.',
-          villain: 'Conversation dips the moment you walk in. Nobody asks you to sit. You linger near the door anyway.',
+        flavor: ({ alignment, phase }) => {
+          if (alignment === 'villain') {
+            return 'Conversation dips the moment you walk in. Nobody asks you to sit. You linger near the door anyway.';
+          }
+          return phase === 'day'
+            ? 'Old dungeon maps line the walls. A veteran waves you over to run a few drills before the stories start. Good company, and you leave sharper for it.'
+            : 'Old dungeon maps line the walls. A few familiar faces trade stories about the depths below town. Good company.';
         },
-        restores: { hero: { social: 40 }, villain: { social: 12 } },
+        restores: ({ alignment, phase }) =>
+          alignment === 'villain' ? { social: 12 } : { social: 40, ...(phase === 'day' ? { energy: 15 } : {}) },
       },
       {
+        // Villains get an exclusive action heroes never see: scavenging the
+        // gate after dark. Same building, same door — the mechanic itself is
+        // alignment + time gated, not just flavor text.
         name: 'Sealed Dungeon Gate',
         x: 460,
         y: 170,
         w: 90,
         h: 90,
-        flavor: {
-          hero: 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon."',
-          villain:
-            'A heavy iron gate, chained shut, humming faintly. Something about the hum feels almost... familiar. A sign reads: "Closed for renovation — VR wing coming soon."',
+        flavor: ({ alignment, phase }) => {
+          if (alignment === 'villain' && phase === 'night') {
+            return 'You press a palm to the humming metal. For a moment it feels like it *wants* you inside. You slip a hand through a gap just wide enough to grab what\'s in reach.';
+          }
+          if (alignment === 'villain') {
+            return 'A heavy iron gate, chained shut, humming faintly. Something about the hum feels almost... familiar. Too many eyes around right now — better after dark.';
+          }
+          return 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon."';
         },
-        restores: same({}),
+        restores: ({ alignment, phase }) =>
+          alignment === 'villain' && phase === 'night' ? { hunger: 15, energy: 15 } : {},
+      },
+      {
+        name: 'The Rusty Anvil',
+        x: 420,
+        y: 300,
+        w: 70,
+        h: 78,
+        flavor: same(
+          'Old Finn hammers out a dent that wasn\'t there yesterday. "Sit, catch your breath a minute." The forge\'s warmth seeps into tired legs.',
+        ),
+        restores: same({ energy: 20, hunger: 10 }),
       },
     ];
 
@@ -301,6 +347,18 @@ export class TownScene extends Phaser.Scene {
       this.needBars[key] = { bar, label: labelText };
     });
 
+    this.reputationText = this.addUI(
+      this.add
+        .text(10, 96, '', {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: '#c9b896',
+          backgroundColor: '#00000066',
+          padding: { x: 4, y: 2 },
+        })
+        .setDepth(100),
+    );
+
     this.clockText = this.addUI(
       this.add
         .text(this.scale.width - 10, 10, '', {
@@ -333,6 +391,7 @@ export class TownScene extends Phaser.Scene {
     const dt = deltaMs / 1000;
     this.needs.update(dt);
     this.clock.update(dt);
+    this.updateReputationFromNeeds();
 
     this.saveTimer += dt;
     if (this.saveTimer >= AUTOSAVE_INTERVAL_SECONDS) {
@@ -433,17 +492,28 @@ export class TownScene extends Phaser.Scene {
     }
   }
 
-  private enterBuilding(b: Building): void {
-    const restores = b.restores[this.alignment];
+  private get interactionContext(): InteractionContext {
+    return { alignment: this.alignment, phase: this.clock.getPhase() };
+  }
+
+  private applyRestores(restores: Partial<Record<NeedKey, number>>): void {
+    const multiplier = this.reputation.getMultiplier();
     for (const [key, amount] of Object.entries(restores) as [NeedKey, number][]) {
-      this.needs.restore(key, amount);
+      this.needs.restore(key, amount * multiplier);
     }
+  }
+
+  private enterBuilding(b: Building): void {
+    const ctx = this.interactionContext;
+    this.applyRestores(resolve(b.restores, ctx));
+    this.reputation.adjust(1);
     this.promptText.setVisible(false);
-    this.showDialog(b.name, b.flavor[this.alignment]);
+    this.showDialog(b.name, resolve(b.flavor, ctx));
   }
 
   private talkToNpc(npc: NpcRuntime): void {
-    this.needs.restore('social', npc.spec.socialRestore[this.alignment]);
+    this.applyRestores({ social: npc.spec.socialRestore[this.alignment] });
+    this.reputation.adjust(1);
     this.promptText.setVisible(false);
     this.showDialog(npc.spec.name, npc.spec.flavor[this.alignment]);
   }
@@ -472,6 +542,17 @@ export class TownScene extends Phaser.Scene {
     this.dialogContainer = container;
   }
 
+  /** Letting a need run dry costs reputation — checked once per drop, not continuously while critical. */
+  private updateReputationFromNeeds(): void {
+    (Object.keys(this.wasCritical) as NeedKey[]).forEach((key) => {
+      const isCritical = this.needs.isCritical(key);
+      if (isCritical && !this.wasCritical[key]) {
+        this.reputation.adjust(-2);
+      }
+      this.wasCritical[key] = isCritical;
+    });
+  }
+
   private updateHud(): void {
     (Object.keys(this.needBars) as NeedKey[]).forEach((key) => {
       const pct = this.needs.get(key) / 100;
@@ -479,6 +560,10 @@ export class TownScene extends Phaser.Scene {
       bar.width = 118 * pct;
       bar.fillColor = this.needs.isCritical(key) ? 0xff4d4d : this.needColors[key];
     });
+
+    this.reputationText.setText(
+      `Reputation: ${this.reputation.getLabel(this.alignment)} (${Math.round(this.reputation.value)})`,
+    );
 
     this.clockText.setText(`Day ${this.clock.getDay()} · ${this.clock.getClockString()} · ${this.clock.getPhase()}`);
     const { color, alpha } = this.clock.getOverlay();

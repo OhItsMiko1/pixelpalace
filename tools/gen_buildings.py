@@ -154,6 +154,7 @@ BUILDINGS = [
     {"key": "bld-2", "w": 88, "h": 76, "material": "plank", "wall": "#6a7d9c", "roof": "#38455c", "door": "#1f2733"},
     {"key": "bld-3", "w": 100, "h": 84, "material": "plank", "wall": "#8f6a9c", "roof": "#4f3059", "door": "#2a1a30"},
     {"key": "bld-4", "w": 90, "h": 90, "material": "brick", "wall": "#555a66", "roof": "#2a2d33", "door": "#14161a"},
+    {"key": "bld-5", "w": 70, "h": 78, "material": "brick", "wall": "#6b4a3a", "roof": "#332420", "door": "#1c1109"},
 ]
 
 

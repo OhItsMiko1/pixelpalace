@@ -23,6 +23,10 @@ const MARKET_DOOR = { x: 248, y: 122 };
 const TAVERN_DOOR = { x: 88, y: 130 };
 const GUILD_DOOR = { x: 250, y: 394 };
 const GATE_DOOR = { x: 505, y: 280 };
+const FORGE_DOOR = { x: 455, y: 388 };
+// South of the forge, not a real landmark — just a safe staging point so a
+// straight line to/from FORGE_DOOR never cuts through the building itself.
+const SOUTH_FORGE_ROAD = { x: 455, y: 430 };
 const WEST_CROSSROADS = { x: 144, y: 224 };
 const EAST_CROSSROADS = { x: 400, y: 224 };
 
@@ -63,6 +67,37 @@ export const NPC_SPECS: NpcSpec[] = [
       { hour: 12, ...EAST_CROSSROADS, label: 'patrolling the crossroads' },
       { hour: 18, ...GATE_DOOR, label: 'checking the sealed gate' },
       { hour: 0, ...WEST_CROSSROADS, label: 'making the night round' },
+    ],
+  },
+  {
+    id: 'finn',
+    name: 'Old Finn',
+    flavor: {
+      hero: '"Good blade needs good balance. You want the truth or the flattering answer?"',
+      villain: '"Cash up front. I don\'t extend credit to folks who don\'t give their real name."',
+    },
+    socialRestore: same(8),
+    schedule: [
+      { hour: 7, ...FORGE_DOOR, label: 'stoking the forge' },
+      { hour: 19, ...SOUTH_FORGE_ROAD, label: 'heading home for the night' },
+    ],
+  },
+  {
+    id: 'wren',
+    name: 'Wren the Messenger',
+    flavor: same('"Bet you can\'t catch me!" She\'s already gone before you can answer.'),
+    socialRestore: same(5),
+    // A restless kid's all-day loop — deliberately routed so no leg's straight
+    // line clips a building's collision box (see gen scripts for the same
+    // concern with player pathing). Doesn't care about your alignment.
+    schedule: [
+      { hour: 0, ...EAST_CROSSROADS, label: 'still up past bedtime, darting through the crossroads' },
+      { hour: 4, ...MARKET_DOOR, label: 'ducking around the market stalls before dawn deliveries' },
+      { hour: 8, ...WEST_CROSSROADS, label: 'racing through the west crossroads' },
+      { hour: 12, ...TAVERN_DOOR, label: 'begging scraps outside the tavern' },
+      { hour: 16, ...GATE_DOOR, label: 'daring herself to touch the sealed gate and running off' },
+      { hour: 18, ...SOUTH_FORGE_ROAD, label: 'circling back along the south road' },
+      { hour: 20, ...FORGE_DOOR, label: 'bothering Old Finn at the forge' },
     ],
   },
 ];
