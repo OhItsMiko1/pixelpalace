@@ -35,17 +35,23 @@ step one of a longer-term plan toward a VR version of the same world.
     through the seal for +15 hunger/energy — heroes and day-time
     villains just get the "closed for renovation" flavor text. Same
     door, different game depending who you are and when you show up.
+- **Quests** — each alignment has its own 3-quest, multi-step questline
+  (talk to an NPC / visit a building, in order), tracked in a HUD line and
+  a full quest log (press `Q`). Completing a step pops a toast; completing
+  a quest grants a reputation and needs boost and unlocks the next one.
+  The villain finale quest ties into the night-only gate-scavenging
+  mechanic — its last step can only be completed after dark.
 - **Reputation** — a 0-100 stat (starts at 50) that rises slightly with
   every interaction and drops when you let a need bottom out. It scales
   every needs restore across the board (0.75x-1.25x), so how you've
   been playing has a compounding effect, and its label is
   alignment-flavored (heroes range Unknown → Beloved, villains
   Forgettable → Notorious).
-- **Save/load** — progress (needs, reputation, in-game time, day count,
-  chosen character) autosaves to `localStorage` every 10 seconds and on
-  tab close. Character select shows a "Continue as {name} — Day N,
-  time" banner when a save exists; picking a character and starting
-  fresh overwrites it.
+- **Save/load** — progress (needs, reputation, quest progress, in-game
+  time, day count, chosen character) autosaves to `localStorage` every 10
+  seconds and on tab close. Character select shows a "Continue as
+  {name} — Day N, time" banner when a save exists; picking a character
+  and starting fresh overwrites it.
 
 All art is real hand-authored pixel art: 16x24 characters (outline,
 shading, per-class silhouette/headwear), textured grass/path tiles, and
@@ -86,5 +92,6 @@ python3 tools/gen_npcs.py
 
 - Even more buildings / a bigger town, more NPCs
 - More alignment-exclusive mechanics beyond the guild hall and the gate
+- More questlines, quest chains that branch, quest-giver NPCs with their own dialogue
 - Multiple save slots, reputation-gated content
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)
