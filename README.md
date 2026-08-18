@@ -48,11 +48,16 @@ step one of a longer-term plan toward a VR version of the same world.
   been playing has a compounding effect, and its label is
   alignment-flavored (heroes range Unknown → Beloved, villains
   Forgettable → Notorious).
-- **Save/load** — progress (needs, reputation, quest progress, in-game
-  time, day count, chosen character) autosaves to `localStorage` every 10
-  seconds and on tab close. Character select shows a "Continue as
-  {name} — Day N, time" banner when a save exists; picking a character
-  and starting fresh overwrites it.
+- **Gold** — a simple currency, starts at 15 and earned from completing
+  quests. **Market Row** doubles as a shop: on top of its usual free
+  bite, walk in and press `1`/`2`/`3` to buy a Hot Meal, a Traveler's
+  Tonic, or a Charm Trinket, each restoring a different need. Insufficient
+  gold just fails the purchase with a toast, no penalty.
+- **Save/load** — progress (needs, reputation, quest progress, gold,
+  in-game time, day count, chosen character) autosaves to `localStorage`
+  every 10 seconds and on tab close. Character select shows a "Continue
+  as {name} — Day N, time" banner when a save exists; picking a
+  character and starting fresh overwrites it.
 
 All art is real hand-authored pixel art: 16x24 characters (outline,
 shading, per-class silhouette/headwear), textured grass/path tiles, and
@@ -94,5 +99,6 @@ python3 tools/gen_npcs.py
 - Even more buildings / a bigger town, more NPCs
 - More alignment-exclusive mechanics beyond the guild hall and the gate
 - More questlines, quest chains that branch, quest-giver NPCs with their own dialogue
+- More ways to earn and spend gold — a job-like interaction, more shops, alignment-flavored goods
 - Multiple save slots, reputation-gated content
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)

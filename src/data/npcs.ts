@@ -20,6 +20,12 @@ export interface NpcSpec {
 // Waypoints reuse the same building-door coordinates as TownScene's interaction
 // zones, plus two road crossroads, so NPC walk paths stay on open ground.
 const MARKET_DOOR = { x: 248, y: 122 };
+// Offset from MARKET_DOOR on purpose: Greta's stall sits right at the door
+// zone's exact center for ~12 hours a day, and building-vs-NPC proximity is a
+// simple point distance (see TownScene.updateNearInteractables) — sitting on
+// the identical point would make the building itself untalkable-around
+// whenever she's there, same class of bug fixed for the blacksmith earlier.
+const MARKET_STALL = { x: 268, y: 122 };
 const TAVERN_DOOR = { x: 88, y: 130 };
 const GUILD_DOOR = { x: 250, y: 394 };
 const GATE_DOOR = { x: 505, y: 280 };
@@ -44,7 +50,7 @@ export const NPC_SPECS: NpcSpec[] = [
     flavor: same('"Fresh bread, still warm. Don\'t tell the mice."'),
     socialRestore: same(8),
     schedule: [
-      { hour: 7, ...MARKET_DOOR, label: 'tending the market stall' },
+      { hour: 7, ...MARKET_STALL, label: 'tending the market stall' },
       { hour: 19, ...WEST_CROSSROADS, label: 'heading home for the night' },
     ],
   },
