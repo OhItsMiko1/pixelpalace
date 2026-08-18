@@ -59,6 +59,7 @@ export class TownScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private eKey!: Phaser.Input.Keyboard.Key;
+  private timeSkipKey?: Phaser.Input.Keyboard.Key;
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private reputation = new ReputationSystem();
@@ -136,6 +137,12 @@ export class TownScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as never;
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    // Dev-only: a full in-game day takes 4 real minutes, which makes manually
+    // testing time-gated content (villain night scavenging, hero day training)
+    // tedious. Stripped from production builds by the import.meta.env.DEV guard.
+    if (import.meta.env.DEV) {
+      this.timeSkipKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+    }
 
     this.overlay = this.addUI(
       this.add
@@ -372,6 +379,21 @@ export class TownScene extends Phaser.Scene {
         .setDepth(100),
     );
 
+    if (import.meta.env.DEV) {
+      this.addUI(
+        this.add
+          .text(this.scale.width - 10, 34, 'dev: T = +3h', {
+            fontFamily: 'monospace',
+            fontSize: '10px',
+            color: '#9aa4c0',
+            backgroundColor: '#00000066',
+            padding: { x: 4, y: 2 },
+          })
+          .setOrigin(1, 0)
+          .setDepth(100),
+      );
+    }
+
     this.promptText = this.addUI(
       this.add
         .text(this.scale.width / 2, this.scale.height - 30, '', {
@@ -391,6 +413,11 @@ export class TownScene extends Phaser.Scene {
     const dt = deltaMs / 1000;
     this.needs.update(dt);
     this.clock.update(dt);
+    // Guarded on import.meta.env.DEV (not just the key being unset) so the
+    // whole branch and skipTime() are constant-folded out of prod builds.
+    if (import.meta.env.DEV && this.timeSkipKey && Phaser.Input.Keyboard.JustDown(this.timeSkipKey)) {
+      this.skipTime(3);
+    }
     this.updateReputationFromNeeds();
 
     this.saveTimer += dt;
@@ -415,6 +442,12 @@ export class TownScene extends Phaser.Scene {
         this.enterBuilding(this.nearBuilding);
       }
     }
+  }
+
+  /** Dev-only time jump. Rolls the day counter over so skipping past midnight behaves like real elapsed time. */
+  private skipTime(hours: number): void {
+    const raw = this.clock.getHours() + hours;
+    this.clock.restore(raw % 24, this.clock.getDay() + Math.floor(raw / 24));
   }
 
   private updateNpcs(_dt: number): void {
