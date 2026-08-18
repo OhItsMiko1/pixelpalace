@@ -4,6 +4,7 @@ import { gameState } from '../state/gameState';
 import { NeedsSystem, type NeedKey } from '../systems/NeedsSystem';
 import { DayNightCycle, type Phase } from '../systems/DayNightCycle';
 import { ReputationSystem } from '../systems/ReputationSystem';
+import { CurrencySystem } from '../systems/CurrencySystem';
 import { QuestSystem } from '../systems/QuestSystem';
 import type { Quest } from '../data/quests';
 import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
@@ -25,6 +26,18 @@ function resolve<T>(value: Resolvable<T>, ctx: InteractionContext): T {
 
 const AUTOSAVE_INTERVAL_SECONDS = 10;
 
+interface ShopItem {
+  name: string;
+  cost: number;
+  needs: Partial<Record<NeedKey, number>>;
+}
+
+const SHOP_ITEMS: ShopItem[] = [
+  { name: 'Hot Meal', cost: 5, needs: { hunger: 30 } },
+  { name: "Traveler's Tonic", cost: 8, needs: { energy: 30 } },
+  { name: 'Charm Trinket', cost: 6, needs: { social: 25 } },
+];
+
 const MAP_COLS = 40;
 const MAP_ROWS = 28;
 const MOVE_SPEED = 120;
@@ -42,6 +55,8 @@ interface Building {
   h: number;
   flavor: Resolvable<string>;
   restores: Resolvable<Partial<Record<NeedKey, number>>>;
+  /** Opens the gold shop menu (SHOP_ITEMS) alongside the normal flavor dialog. */
+  shop?: boolean;
   sprite?: Phaser.GameObjects.Image;
   zone?: Phaser.GameObjects.Zone;
 }
@@ -64,11 +79,15 @@ export class TownScene extends Phaser.Scene {
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private eKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
+  private shopKeys: Phaser.Input.Keyboard.Key[] = [];
   private timeSkipKey?: Phaser.Input.Keyboard.Key;
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private reputation = new ReputationSystem();
+  private currency = new CurrencySystem();
   private quests!: QuestSystem;
+  private goldText!: Phaser.GameObjects.Text;
+  private activeShopBuilding?: Building;
   private wasCritical: Record<NeedKey, boolean> = { hunger: false, energy: false, social: false };
   private reputationText!: Phaser.GameObjects.Text;
   private questTrackerText!: Phaser.GameObjects.Text;
@@ -108,8 +127,9 @@ export class TownScene extends Phaser.Scene {
     if (resume && resume.characterId === cls.id) {
       Object.assign(this.needs.values, resume.needs);
       this.clock.restore(resume.hours, resume.day);
-      // Older saves predate reputation — default rather than resuming `undefined`.
+      // Older saves predate reputation/gold — default rather than resuming `undefined`.
       this.reputation.value = resume.reputation ?? this.reputation.value;
+      this.currency.value = resume.gold ?? this.currency.value;
       questProgress = resume.quests;
     }
     this.quests = new QuestSystem(this.alignment, questProgress);
@@ -151,6 +171,11 @@ export class TownScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as never;
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.shopKeys = [
+      this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
+      this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+      this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
+    ];
     // Dev-only: a full in-game day takes 4 real minutes, which makes manually
     // testing time-gated content (villain night scavenging, hero day training)
     // tedious. Stripped from production builds by the import.meta.env.DEV guard.
@@ -182,6 +207,7 @@ export class TownScene extends Phaser.Scene {
       day: this.clock.getDay(),
       reputation: this.reputation.value,
       quests: this.quests.serialize(),
+      gold: this.currency.value,
       savedAt: Date.now(),
     });
   }
@@ -231,6 +257,7 @@ export class TownScene extends Phaser.Scene {
             'The vendor "loses count" of your change more than once. You don\'t correct her. You grab a quick bite.',
         },
         restores: same({ hunger: 35 }),
+        shop: true,
       },
       {
         id: 'cottage',
@@ -413,9 +440,21 @@ export class TownScene extends Phaser.Scene {
         .setDepth(100),
     );
 
+    this.goldText = this.addUI(
+      this.add
+        .text(10, 118, '', {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: '#ffd166',
+          backgroundColor: '#00000066',
+          padding: { x: 4, y: 2 },
+        })
+        .setDepth(100),
+    );
+
     this.questTrackerText = this.addUI(
       this.add
-        .text(10, 120, '', {
+        .text(10, 142, '', {
           fontFamily: 'monospace',
           fontSize: '11px',
           color: '#ffe9a8',
@@ -527,11 +566,18 @@ export class TownScene extends Phaser.Scene {
       if (this.dialogContainer) {
         this.dialogContainer.destroy();
         this.dialogContainer = undefined;
+        this.activeShopBuilding = undefined;
       } else if (this.nearNpc) {
         this.talkToNpc(this.nearNpc);
       } else if (this.nearBuilding) {
         this.enterBuilding(this.nearBuilding);
       }
+    }
+
+    if (this.activeShopBuilding) {
+      this.shopKeys.forEach((key, i) => {
+        if (Phaser.Input.Keyboard.JustDown(key)) this.tryPurchase(i);
+      });
     }
 
     const qPressed = Phaser.Input.Keyboard.JustDown(this.qKey);
@@ -642,7 +688,12 @@ export class TownScene extends Phaser.Scene {
     this.applyRestores(resolve(b.restores, ctx));
     this.reputation.adjust(1);
     this.promptText.setVisible(false);
-    this.showDialog(b.name, resolve(b.flavor, ctx));
+    if (b.shop) {
+      this.activeShopBuilding = b;
+      this.showShopDialog(b, resolve(b.flavor, ctx));
+    } else {
+      this.showDialog(b.name, resolve(b.flavor, ctx));
+    }
     this.handleQuestResult(this.quests.notify('visit', b.id, ctx.phase));
   }
 
@@ -659,7 +710,9 @@ export class TownScene extends Phaser.Scene {
       const quest = result.questCompleted;
       this.reputation.adjust(quest.reward.reputation);
       if (quest.reward.needs) this.applyRestores(quest.reward.needs);
-      this.showToast(`Quest complete: ${quest.name}! +${quest.reward.reputation} reputation`);
+      if (quest.reward.gold) this.currency.earn(quest.reward.gold);
+      const goldPart = quest.reward.gold ? `, +${quest.reward.gold} gold` : '';
+      this.showToast(`Quest complete: ${quest.name}! +${quest.reward.reputation} reputation${goldPart}`);
     } else if (result.stepAdvanced) {
       this.showToast('Objective complete!');
     }
@@ -724,6 +777,62 @@ export class TownScene extends Phaser.Scene {
     this.questLogContainer = container;
   }
 
+  private showShopDialog(b: Building, flavor: string): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const boxH = 130 + SHOP_ITEMS.length * 18;
+    const container = this.addUI(this.add.container(w / 2, h / 2).setDepth(200));
+    const bg = this.add.rectangle(0, 0, Math.min(w - 60, 480), boxH, 0x14141c, 0.96).setStrokeStyle(2, 0xffd166);
+    const titleText = this.add
+      .text(0, -boxH / 2 + 20, b.name, { fontFamily: 'monospace', fontSize: '16px', color: '#ffd166', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    const flavorText = this.add
+      .text(0, -boxH / 2 + 44, flavor, {
+        fontFamily: 'monospace',
+        fontSize: '11px',
+        color: '#dfe4f2',
+        wordWrap: { width: Math.min(w - 100, 420) },
+        align: 'center',
+      })
+      .setOrigin(0.5, 0);
+    const goldLine = this.add
+      .text(0, -boxH / 2 + 44 + flavorText.height + 10, `Gold: ${this.currency.value}`, {
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#ffd166',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5, 0);
+    const itemLines = SHOP_ITEMS.map((item, i) =>
+      this.add
+        .text(0, goldLine.y + 20 + i * 18, `${i + 1}. ${item.name} — ${item.cost}g`, {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: '#dfe4f2',
+        })
+        .setOrigin(0.5, 0),
+    );
+    const hint = this.add
+      .text(0, boxH / 2 - 14, 'Press 1-3 to buy · E to leave', { fontFamily: 'monospace', fontSize: '10px', color: '#9aa4c0' })
+      .setOrigin(0.5);
+    container.add([bg, titleText, flavorText, goldLine, ...itemLines, hint]);
+    this.dialogContainer = container;
+  }
+
+  private tryPurchase(index: number): void {
+    const item = SHOP_ITEMS[index];
+    if (!item || !this.activeShopBuilding) return;
+    if (this.currency.spend(item.cost)) {
+      this.applyRestores(item.needs);
+      this.showToast(`Bought ${item.name}!`);
+    } else {
+      this.showToast('Not enough gold.');
+    }
+    // Redraw so the gold balance shown in the dialog stays current.
+    this.dialogContainer?.destroy();
+    this.showShopDialog(this.activeShopBuilding, resolve(this.activeShopBuilding.flavor, this.interactionContext));
+  }
+
   private showDialog(title: string, body: string): void {
     const w = this.scale.width;
     const h = this.scale.height;
@@ -770,6 +879,8 @@ export class TownScene extends Phaser.Scene {
     this.reputationText.setText(
       `Reputation: ${this.reputation.getLabel(this.alignment)} (${Math.round(this.reputation.value)})`,
     );
+
+    this.goldText.setText(`Gold: ${this.currency.value}`);
 
     const activeQuest = this.quests.getActiveQuest();
     const activeStep = this.quests.getActiveStep();

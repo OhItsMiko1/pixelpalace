@@ -14,6 +14,8 @@ export interface SaveData {
   reputation: number;
   /** Added after v1 shipped, same caveat as `reputation` — read with `??` / an `undefined` check. */
   quests?: QuestProgress;
+  /** Added after v1 shipped, same caveat as `reputation` — read with `??`. */
+  gold?: number;
   savedAt: number;
 }
 

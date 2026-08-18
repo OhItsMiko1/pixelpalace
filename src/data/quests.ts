@@ -16,6 +16,7 @@ export interface QuestStep {
 export interface QuestReward {
   reputation: number;
   needs?: Partial<Record<NeedKey, number>>;
+  gold?: number;
 }
 
 export interface Quest {
@@ -41,7 +42,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'talk', targetId: 'watchman', text: 'Ask Watchman Bram about the gate.' },
       { type: 'visit', targetId: 'gate', text: 'See the Sealed Dungeon Gate for yourself.' },
     ],
-    reward: { reputation: 8, needs: { energy: 20 } },
+    reward: { reputation: 8, needs: { energy: 20 }, gold: 15 },
   },
   {
     id: 'hero-finns-favor',
@@ -53,7 +54,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'visit', targetId: 'market', text: 'Pick up supplies at Market Row.' },
       { type: 'talk', targetId: 'finn', text: 'Bring the supplies back to Finn.' },
     ],
-    reward: { reputation: 8, needs: { hunger: 20 } },
+    reward: { reputation: 8, needs: { hunger: 20 }, gold: 15 },
   },
   {
     id: 'hero-watch-over-wren',
@@ -65,7 +66,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'talk', targetId: 'baker', text: "Ask Greta if she's seen Wren around." },
       { type: 'talk', targetId: 'wren', text: 'Find Wren again and see her home safe.' },
     ],
-    reward: { reputation: 12, needs: { social: 30, energy: 15, hunger: 15 } },
+    reward: { reputation: 12, needs: { social: 30, energy: 15, hunger: 15 }, gold: 20 },
   },
   {
     id: 'hero-old-scrolls-new-trouble',
@@ -77,7 +78,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'talk', targetId: 'silas', text: 'See what Silas knows about the well.' },
       { type: 'visit', targetId: 'well', text: 'Take a look at the well yourself.' },
     ],
-    reward: { reputation: 10, needs: { social: 20, energy: 20 } },
+    reward: { reputation: 10, needs: { social: 20, energy: 20 }, gold: 20 },
   },
   {
     id: 'villain-first-impressions',
@@ -89,7 +90,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'visit', targetId: 'gate', text: 'Size up the Sealed Dungeon Gate.' },
       { type: 'talk', targetId: 'watchman', text: 'See how Watchman Bram reacts to you.' },
     ],
-    reward: { reputation: 8, needs: { energy: 20 } },
+    reward: { reputation: 8, needs: { energy: 20 }, gold: 15 },
   },
   {
     id: 'villain-leverage',
@@ -101,7 +102,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'visit', targetId: 'market', text: 'Case Market Row for an opportunity.' },
       { type: 'talk', targetId: 'finn', text: 'Collect what Finn owes you.' },
     ],
-    reward: { reputation: 8, needs: { hunger: 20 } },
+    reward: { reputation: 8, needs: { hunger: 20 }, gold: 15 },
   },
   {
     id: 'villain-the-long-game',
@@ -113,7 +114,7 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'visit', targetId: 'gate', text: 'Return to the gate after nightfall.', requiresPhase: 'night' },
       { type: 'talk', targetId: 'watchman', text: 'Make sure Bram never suspects a thing.' },
     ],
-    reward: { reputation: 12, needs: { social: 20, energy: 20, hunger: 20 } },
+    reward: { reputation: 12, needs: { social: 20, energy: 20, hunger: 20 }, gold: 20 },
   },
   {
     id: 'villain-water-under-the-bridge',
@@ -125,6 +126,6 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'visit', targetId: 'well', text: 'Check the well after dark.', requiresPhase: 'night' },
       { type: 'talk', targetId: 'mira', text: 'Make Mira forget she ever saw you.' },
     ],
-    reward: { reputation: 10, needs: { social: 20, hunger: 20 } },
+    reward: { reputation: 10, needs: { social: 20, hunger: 20 }, gold: 20 },
   },
 ];
