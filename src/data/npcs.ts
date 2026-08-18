@@ -29,6 +29,13 @@ const FORGE_DOOR = { x: 455, y: 388 };
 const SOUTH_FORGE_ROAD = { x: 455, y: 430 };
 const WEST_CROSSROADS = { x: 144, y: 224 };
 const EAST_CROSSROADS = { x: 400, y: 224 };
+const STUDY_DOOR = { x: 588, y: 122 };
+const WELL_DOOR = { x: 585, y: 380 };
+// Staging points, not real landmarks — same purpose as SOUTH_FORGE_ROAD: keep
+// straight-line legs from clipping the Sealed Dungeon Gate (x460-550) or the
+// well itself. EAST_ROAD_SOUTH sits entirely east of the gate's x-range.
+const EAST_ROAD_SOUTH = { x: 600, y: 265 };
+const SOUTH_WELL_ROAD = { x: 585, y: 420 };
 
 export const NPC_SPECS: NpcSpec[] = [
   {
@@ -98,6 +105,32 @@ export const NPC_SPECS: NpcSpec[] = [
       { hour: 16, ...GATE_DOOR, label: 'daring herself to touch the sealed gate and running off' },
       { hour: 18, ...SOUTH_FORGE_ROAD, label: 'circling back along the south road' },
       { hour: 20, ...FORGE_DOOR, label: 'bothering Old Finn at the forge' },
+    ],
+  },
+  {
+    id: 'mira',
+    name: 'Mira the Scrivener',
+    flavor: {
+      hero: '"Careful with that ink, it still bites." She taps a shelf of scrolls. "This one\'s about the old maps, if you\'re curious."',
+      villain: 'She doesn\'t stop writing. "I don\'t sell rumors. I sell parchment." A pause. "Rumors cost extra."',
+    },
+    socialRestore: same(8),
+    schedule: [
+      { hour: 7, ...STUDY_DOOR, label: 'cataloguing scrolls at the Study' },
+      { hour: 21, ...EAST_ROAD_SOUTH, label: 'heading home for the night' },
+    ],
+  },
+  {
+    id: 'silas',
+    name: 'Silas the Well-Keeper',
+    flavor: {
+      hero: '"Fetch water if you like — just mind the bucket rope, it\'s seen better decades."',
+      villain: '"Well\'s just a well." He doesn\'t quite meet your eyes. "Unless you\'re asking the right way."',
+    },
+    socialRestore: same(6),
+    schedule: [
+      { hour: 8, ...WELL_DOOR, label: 'minding the well' },
+      { hour: 19, ...SOUTH_WELL_ROAD, label: 'heading home for the night' },
     ],
   },
 ];

@@ -16,12 +16,16 @@ import bld2Url from '../assets/buildings/bld-2.png';
 import bld3Url from '../assets/buildings/bld-3.png';
 import bld4Url from '../assets/buildings/bld-4.png';
 import bld5Url from '../assets/buildings/bld-5.png';
+import bld6Url from '../assets/buildings/bld-6.png';
+import bld7Url from '../assets/buildings/bld-7.png';
 
 import bakerUrl from '../assets/npcs/baker.png';
 import barkeepUrl from '../assets/npcs/barkeep.png';
 import watchmanUrl from '../assets/npcs/watchman.png';
 import finnUrl from '../assets/npcs/finn.png';
 import wrenUrl from '../assets/npcs/wren.png';
+import miraUrl from '../assets/npcs/mira.png';
+import silasUrl from '../assets/npcs/silas.png';
 
 export const CHARACTER_IMAGES: Record<string, string> = {
   warrior: warriorUrl,
@@ -39,7 +43,7 @@ export const TILE_IMAGES: Record<'grass' | 'path', string> = {
   path: pathUrl,
 };
 
-export const BUILDING_IMAGES: string[] = [bld0Url, bld1Url, bld2Url, bld3Url, bld4Url, bld5Url];
+export const BUILDING_IMAGES: string[] = [bld0Url, bld1Url, bld2Url, bld3Url, bld4Url, bld5Url, bld6Url, bld7Url];
 
 export const NPC_IMAGES: Record<string, string> = {
   baker: bakerUrl,
@@ -47,4 +51,6 @@ export const NPC_IMAGES: Record<string, string> = {
   watchman: watchmanUrl,
   finn: finnUrl,
   wren: wrenUrl,
+  mira: miraUrl,
+  silas: silasUrl,
 };
