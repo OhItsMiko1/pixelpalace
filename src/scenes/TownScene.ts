@@ -300,6 +300,32 @@ export class TownScene extends Phaser.Scene {
         ),
         restores: same({ energy: 20, hunger: 10 }),
       },
+      {
+        id: 'study',
+        name: "The Scrivener's Study",
+        x: 550,
+        y: 40,
+        w: 76,
+        h: 72,
+        flavor: {
+          hero: 'Mira barely looks up from a half-repaired scroll. "Careful with the ink — it still bites." The quiet here is its own kind of rest.',
+          villain: 'Mira slides a ledger under a stack of books the second you walk in. "Just... browsing?" The quiet here is its own kind of rest.',
+        },
+        restores: same({ social: 15, energy: 15 }),
+      },
+      {
+        id: 'well',
+        name: 'The Old Well',
+        x: 550,
+        y: 300,
+        w: 70,
+        h: 70,
+        flavor: {
+          hero: "The well water is cold and clean. Somebody's left a tin cup on the rim for anyone who needs it.",
+          villain: "The well water is cold and clean — and the loose stone at its base hides more than water, if you know where to look.",
+        },
+        restores: same({ hunger: 10, energy: 10 }),
+      },
     ];
 
     defs.forEach((def, i) => {

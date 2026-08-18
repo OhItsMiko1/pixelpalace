@@ -20,11 +20,11 @@ step one of a longer-term plan toward a VR version of the same world.
   screen tint that shifts accordingly.
 - **Interactions** — walk up to a building and press `E` to enter; each
   has flavor text and restores relevant needs.
-- **NPCs with schedules** — five townsfolk (a baker, a barkeep, a
-  watchman, a blacksmith, and a messenger kid who loops the whole map
-  all day) each follow an hour-keyed route, so the town actually
-  changes as the day/night clock advances. Press `E` near one to talk
-  (restores a little social).
+- **NPCs with schedules** — seven townsfolk (a baker, a barkeep, a
+  watchman, a blacksmith, a messenger kid who loops the whole map all
+  day, a scrivener, and a well-keeper) each follow an hour-keyed route,
+  so the town actually changes as the day/night clock advances. Press
+  `E` near one to talk (restores a little social).
 - **Hero vs. villain actually matters** — every building and NPC has
   alignment-aware flavor text, and two spots go further with a real
   mechanic, not just a reaction:
@@ -35,12 +35,13 @@ step one of a longer-term plan toward a VR version of the same world.
     through the seal for +15 hunger/energy — heroes and day-time
     villains just get the "closed for renovation" flavor text. Same
     door, different game depending who you are and when you show up.
-- **Quests** — each alignment has its own 3-quest, multi-step questline
+- **Quests** — each alignment has its own 4-quest, multi-step questline
   (talk to an NPC / visit a building, in order), tracked in a HUD line and
   a full quest log (press `Q`). Completing a step pops a toast; completing
   a quest grants a reputation and needs boost and unlocks the next one.
-  The villain finale quest ties into the night-only gate-scavenging
-  mechanic — its last step can only be completed after dark.
+  The villain path has two night-gated steps — one ties into the
+  gate-scavenging mechanic, the other requires a nighttime visit to the
+  well.
 - **Reputation** — a 0-100 stat (starts at 50) that rises slightly with
   every interaction and drops when you let a need bottom out. It scales
   every needs restore across the board (0.75x-1.25x), so how you've
