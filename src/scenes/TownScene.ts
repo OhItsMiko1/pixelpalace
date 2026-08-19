@@ -313,12 +313,12 @@ export class TownScene extends Phaser.Scene {
         h: 90,
         flavor: ({ alignment, phase }) => {
           if (alignment === 'villain' && phase === 'night') {
-            return 'You press a palm to the humming metal. For a moment it feels like it *wants* you inside. You slip a hand through a gap just wide enough to grab what\'s in reach.';
+            return 'You press a palm to the humming metal. For a moment it feels like it *wants* you inside. Past the gap the air already smells like the Sewers everyone whispers about. You slip a hand through just wide enough to grab what\'s in reach.';
           }
           if (alignment === 'villain') {
-            return 'A heavy iron gate, chained shut, humming faintly. Something about the hum feels almost... familiar. Too many eyes around right now — better after dark.';
+            return 'A heavy iron gate, chained shut, humming faintly. Delvers who\'ve come back talk about rats, gnolls, and something they just call "the Goo." Too many eyes around right now — better after dark.';
           }
-          return 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon."';
+          return 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon." Somewhere below, the Sewers wait for whoever\'s next.';
         },
         restores: ({ alignment, phase }) =>
           alignment === 'villain' && phase === 'night' ? { hunger: 15, energy: 15 } : {},

@@ -26,6 +26,7 @@ import finnUrl from '../assets/npcs/finn.png';
 import wrenUrl from '../assets/npcs/wren.png';
 import miraUrl from '../assets/npcs/mira.png';
 import silasUrl from '../assets/npcs/silas.png';
+import kessaUrl from '../assets/npcs/kessa.png';
 
 export const CHARACTER_IMAGES: Record<string, string> = {
   warrior: warriorUrl,
@@ -53,4 +54,5 @@ export const NPC_IMAGES: Record<string, string> = {
   wren: wrenUrl,
   mira: miraUrl,
   silas: silasUrl,
+  kessa: kessaUrl,
 };

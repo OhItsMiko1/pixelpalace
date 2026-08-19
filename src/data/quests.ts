@@ -81,6 +81,18 @@ export const QUEST_SPECS: Quest[] = [
     reward: { reputation: 10, needs: { social: 20, energy: 20 }, gold: 20 },
   },
   {
+    id: 'hero-word-from-the-sewers',
+    alignment: 'hero',
+    name: 'Word from the Sewers',
+    summary: "Kessa made it back from the Sewers in one piece — barely. She's got stories, and maybe a favor to ask.",
+    steps: [
+      { type: 'talk', targetId: 'kessa', text: 'Check on Kessa, fresh back from the Sewers.' },
+      { type: 'talk', targetId: 'mira', text: 'Ask Mira if the Study has any old maps of the dungeon.' },
+      { type: 'talk', targetId: 'kessa', text: 'Bring what Mira found back to Kessa.' },
+    ],
+    reward: { reputation: 12, needs: { energy: 20, social: 20 }, gold: 22 },
+  },
+  {
     id: 'villain-first-impressions',
     alignment: 'villain',
     name: 'First Impressions',
@@ -127,5 +139,17 @@ export const QUEST_SPECS: Quest[] = [
       { type: 'talk', targetId: 'mira', text: 'Make Mira forget she ever saw you.' },
     ],
     reward: { reputation: 10, needs: { social: 20, hunger: 20 }, gold: 20 },
+  },
+  {
+    id: 'villain-tengus-due',
+    alignment: 'villain',
+    name: "Tengu's Due",
+    summary: "Word is Tengu's people still work the Prison level — and they're always looking for hands willing to get dirty on the surface.",
+    steps: [
+      { type: 'talk', targetId: 'kessa', text: "Get close to Kessa — she knows more than she's saying." },
+      { type: 'visit', targetId: 'gate', text: "Search the gate after dark for a sign of Tengu's mark.", requiresPhase: 'night' },
+      { type: 'talk', targetId: 'kessa', text: "Press Kessa for what she's really carrying." },
+    ],
+    reward: { reputation: 12, needs: { energy: 20, hunger: 20 }, gold: 22 },
   },
 ];
