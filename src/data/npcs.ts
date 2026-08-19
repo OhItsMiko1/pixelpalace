@@ -53,6 +53,11 @@ const EAST_ROAD_SOUTH = { x: 600, y: 265 };
 // the tavern side that would otherwise cut through its bottom-left corner.
 const SOUTH_GATE_ROAD = { x: 450, y: 265 };
 const SOUTH_WELL_ROAD = { x: 585, y: 420 };
+// Kessa's camp, south of the gate — not a door zone at all, so no offset
+// needed. Far enough from GATE_POST/SOUTH_GATE_ROAD/EAST_ROAD_SOUTH that she
+// never overlaps another NPC's stop, and outside every building's collision
+// box (checked against the gate's box: y=310 is below its y-max of 260).
+const KESSA_CAMP = { x: 505, y: 310 };
 
 export const NPC_SPECS: NpcSpec[] = [
   {
@@ -82,8 +87,8 @@ export const NPC_SPECS: NpcSpec[] = [
     id: 'watchman',
     name: 'Watchman Bram',
     flavor: {
-      hero: '"Gate\'s still sealed. Still humming. Still not my problem — yet."',
-      villain: '"Don\'t linger. Gate\'s still sealed, and so is my patience for your sort."',
+      hero: '"Gate\'s still sealed. Still humming. Whatever\'s crawling around down in the Sewers can stay there — not my problem, yet."',
+      villain: '"Don\'t linger. Gate\'s still sealed, and so is my patience for your sort. Yendor\'s Amulet isn\'t coming up through here on my watch."',
     },
     socialRestore: { hero: 8, villain: 2 },
     schedule: [
@@ -150,6 +155,17 @@ export const NPC_SPECS: NpcSpec[] = [
       { hour: 8, ...WELL_POST, label: 'minding the well' },
       { hour: 19, ...SOUTH_WELL_ROAD, label: 'heading home for the night' },
     ],
+  },
+  {
+    id: 'kessa',
+    name: 'Kessa the Freerunner',
+    flavor: {
+      hero: '"Two floors into the Sewers and back out again — rats, mostly, and one gnoll scout that nearly had my throat." She flexes a bandaged hand. "Worth it, for what I found."',
+      villain: 'She sizes you up before answering. "Sewers are rough this season. Wouldn\'t recommend it — unless you\'ve got a reason I\'d understand."',
+    },
+    socialRestore: same(8),
+    // Camped in one spot the whole day recovering — no legs to path-check.
+    schedule: [{ hour: 0, ...KESSA_CAMP, label: 'resting near the gate, nursing a scraped-up arm' }],
   },
 ];
 

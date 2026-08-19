@@ -1,9 +1,13 @@
 # Pixel Palace
 
-A life-sim set in the world *around* the dungeon — same universe as
-Pixel Dungeon / Shattered Pixel Dungeon in spirit, but you're not the one
-delving. Pick a hero or a villain archetype and live in the town outside
-the gate: Sims-style needs, a day/night clock, buildings to visit. This is
+A life-sim set in the world *around* the dungeon — the actual [Shattered
+Pixel Dungeon](https://shatteredpixel.com/shatteredpd/) universe, but
+you're not the one delving. Pick a hero or a villain archetype and live
+in the town outside the gate: Sims-style needs, a day/night clock,
+buildings to visit. Flavor text and quest content lean on real canon
+where it fits — the gate leads down to the actual Sewers, NPCs reference
+real threats (gnolls, the Goo, Tengu's assassin cult from the Prison
+level), and one NPC is herself a delver just back from a run. This is
 step one of a longer-term plan toward a VR version of the same world.
 
 ## v0 (current)
@@ -20,11 +24,12 @@ step one of a longer-term plan toward a VR version of the same world.
   screen tint that shifts accordingly.
 - **Interactions** — walk up to a building and press `E` to enter; each
   has flavor text and restores relevant needs.
-- **NPCs with schedules** — seven townsfolk (a baker, a barkeep, a
+- **NPCs with schedules** — eight townsfolk (a baker, a barkeep, a
   watchman, a blacksmith, a messenger kid who loops the whole map all
-  day, a scrivener, and a well-keeper) each follow an hour-keyed route,
-  so the town actually changes as the day/night clock advances. Press
-  `E` near one to talk (restores a little social).
+  day, a scrivener, a well-keeper, and a delver just back from the
+  Sewers) each follow an hour-keyed route, so the town actually changes
+  as the day/night clock advances. Press `E` near one to talk (restores
+  a little social).
 - **Hero vs. villain actually matters** — every building and NPC has
   alignment-aware flavor text, and two spots go further with a real
   mechanic, not just a reaction:
@@ -35,13 +40,15 @@ step one of a longer-term plan toward a VR version of the same world.
     through the seal for +15 hunger/energy — heroes and day-time
     villains just get the "closed for renovation" flavor text. Same
     door, different game depending who you are and when you show up.
-- **Quests** — each alignment has its own 4-quest, multi-step questline
+- **Quests** — each alignment has its own 5-quest, multi-step questline
   (talk to an NPC / visit a building, in order), tracked in a HUD line and
   a full quest log (press `Q`). Completing a step pops a toast; completing
   a quest grants a reputation and needs boost and unlocks the next one.
-  The villain path has two night-gated steps — one ties into the
-  gate-scavenging mechanic, the other requires a nighttime visit to the
-  well.
+  The villain path has three night-gated steps across its questline. The
+  final quest for both alignments centers on Kessa the Freerunner, fresh
+  back from the Sewers — heroes help her follow up on what she found,
+  villains lean on her over a rumored tie to Tengu's cult from the Prison
+  level.
 - **Reputation** — a 0-100 stat (starts at 50) that rises slightly with
   every interaction and drops when you let a need bottom out. It scales
   every needs restore across the board (0.75x-1.25x), so how you've
@@ -105,6 +112,7 @@ python3 tools/gen_npcs.py
 - Even more buildings / a bigger town, more NPCs
 - More alignment-exclusive mechanics beyond the guild hall and the gate
 - More questlines, quest chains that branch, quest-giver NPCs with their own dialogue
-- More ways to earn and spend gold — a job-like interaction, more shops, alignment-flavored goods
+- More ways to earn and spend gold — more jobs, more shops, alignment-flavored goods
+- Deeper Shattered Pixel Dungeon lore ties — more real floors/enemies/bosses referenced, maybe other delvers with their own stories
 - Multiple save slots, reputation-gated content
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)
