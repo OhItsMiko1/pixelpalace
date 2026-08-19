@@ -16,7 +16,10 @@ step one of a longer-term plan toward a VR version of the same world.
   Huntress) and 4 villain archetypes (Plague Doctor, Bandit Lord,
   Necromancer, Corrupted Duelist), each with original flavor text.
 - **Town** — walk around with WASD/arrow keys, camera follows the
-  player, buildings block movement.
+  player, buildings block movement. On a touch device (tablet/phone,
+  no keyboard) an on-screen D-pad plus Interact/Quest buttons appear
+  automatically, and the shop and job prompts become tappable — the
+  screen also scales to fit any device via Phaser's Scale Manager.
 - **Needs system** — hunger, energy, and social meters decay over time
   and are restored by visiting the right building (tavern, cottage,
   guild hall, market).
@@ -89,6 +92,10 @@ npm install
 npm run dev      # local dev server
 npm run build    # production build to dist/
 ```
+
+To test on a phone/tablet, make sure it's on the same WiFi network as the
+machine running `npm run dev`, then open the "Network" URL Vite prints
+(not `localhost`) in that device's browser.
 
 ## Art pipeline
 

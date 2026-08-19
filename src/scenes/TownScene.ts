@@ -84,6 +84,13 @@ export class TownScene extends Phaser.Scene {
   private jKey!: Phaser.Input.Keyboard.Key;
   private shopKeys: Phaser.Input.Keyboard.Key[] = [];
   private timeSkipKey?: Phaser.Input.Keyboard.Key;
+  private isTouchDevice = false;
+  private touchDpad: { up: boolean; down: boolean; left: boolean; right: boolean } = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+  };
   private needs = new NeedsSystem();
   private clock = new DayNightCycle();
   private reputation = new ReputationSystem();
@@ -120,6 +127,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.isTouchDevice = this.sys.game.device.input.touch;
     if (!gameState.selectedCharacter) {
       gameState.selectedCharacter = CHARACTER_CLASSES[0];
     }
@@ -188,6 +196,13 @@ export class TownScene extends Phaser.Scene {
     // tedious. Stripped from production builds by the import.meta.env.DEV guard.
     if (import.meta.env.DEV) {
       this.timeSkipKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+    }
+
+    if (this.isTouchDevice) {
+      // Default pointer capacity is 1 touch beyond the primary — a held
+      // D-pad button plus a simultaneous tap on Interact/Quest needs more.
+      this.input.addPointer(2);
+      this.setupTouchControls();
     }
 
     this.overlay = this.addUI(
@@ -556,6 +571,77 @@ export class TownScene extends Phaser.Scene {
         .setDepth(100)
         .setVisible(false),
     );
+
+    if (this.isTouchDevice) {
+      this.jobPromptText.setInteractive();
+      this.jobPromptText.on('pointerdown', () => {
+        if (this.jobPromptText.visible) this.tryWork();
+      });
+    }
+  }
+
+  /** Touch-only on-screen D-pad + Interact/Quest buttons, for devices with no keyboard. */
+  private setupTouchControls(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+
+    const dpadX = 90;
+    const dpadY = h - 110;
+    const dpadR = 28;
+    const dpadOffset = 46;
+
+    const makeDpadButton = (dx: number, dy: number, label: string, key: keyof typeof this.touchDpad) => {
+      const btn = this.addUI(
+        this.add.circle(dpadX + dx, dpadY + dy, dpadR, 0xffffff, 0.15).setStrokeStyle(2, 0xffffff, 0.4).setDepth(120),
+      );
+      btn.setInteractive();
+      btn.on('pointerdown', () => {
+        this.touchDpad[key] = true;
+      });
+      btn.on('pointerup', () => {
+        this.touchDpad[key] = false;
+      });
+      btn.on('pointerupoutside', () => {
+        this.touchDpad[key] = false;
+      });
+      btn.on('pointerout', () => {
+        this.touchDpad[key] = false;
+      });
+      this.addUI(
+        this.add
+          .text(dpadX + dx, dpadY + dy, label, { fontFamily: 'monospace', fontSize: '16px', color: '#ffffff' })
+          .setOrigin(0.5)
+          .setDepth(121),
+      );
+    };
+    makeDpadButton(0, -dpadOffset, '▲', 'up');
+    makeDpadButton(0, dpadOffset, '▼', 'down');
+    makeDpadButton(-dpadOffset, 0, '◀', 'left');
+    makeDpadButton(dpadOffset, 0, '▶', 'right');
+
+    const interactBtn = this.addUI(
+      this.add.circle(w - 70, h - 80, 36, 0xffe9a8, 0.28).setStrokeStyle(2, 0xffe9a8, 0.6).setDepth(120),
+    );
+    interactBtn.setInteractive();
+    interactBtn.on('pointerdown', () => this.handleInteractPress());
+    this.addUI(
+      this.add
+        .text(w - 70, h - 80, 'E', { fontFamily: 'monospace', fontSize: '20px', color: '#ffe9a8', fontStyle: 'bold' })
+        .setOrigin(0.5)
+        .setDepth(121),
+    );
+
+    const questBtn = this.addUI(
+      this.add.circle(w - 150, h - 60, 24, 0xffffff, 0.15).setStrokeStyle(2, 0xffffff, 0.4).setDepth(120),
+    );
+    questBtn.setInteractive();
+    questBtn.on('pointerdown', () => this.toggleQuestLog());
+    this.addUI(
+      this.add
+        .text(w - 150, h - 60, 'Q', { fontFamily: 'monospace', fontSize: '16px', color: '#ffffff' })
+        .setOrigin(0.5)
+        .setDepth(121),
+    );
   }
 
   update(_time: number, deltaMs: number): void {
@@ -586,18 +672,7 @@ export class TownScene extends Phaser.Scene {
     this.updateJobPrompt();
     this.updateHud();
 
-    const ePressed = Phaser.Input.Keyboard.JustDown(this.eKey);
-    if (ePressed && !this.questLogContainer) {
-      if (this.dialogContainer) {
-        this.dialogContainer.destroy();
-        this.dialogContainer = undefined;
-        this.activeShopBuilding = undefined;
-      } else if (this.nearNpc) {
-        this.talkToNpc(this.nearNpc);
-      } else if (this.nearBuilding) {
-        this.enterBuilding(this.nearBuilding);
-      }
-    }
+    if (Phaser.Input.Keyboard.JustDown(this.eKey)) this.handleInteractPress();
 
     if (this.activeShopBuilding) {
       this.shopKeys.forEach((key, i) => {
@@ -605,19 +680,36 @@ export class TownScene extends Phaser.Scene {
       });
     }
 
-    const qPressed = Phaser.Input.Keyboard.JustDown(this.qKey);
-    if (qPressed && !this.dialogContainer) {
-      if (this.questLogContainer) {
-        this.questLogContainer.destroy();
-        this.questLogContainer = undefined;
-      } else {
-        this.showQuestLog();
-      }
-    }
+    if (Phaser.Input.Keyboard.JustDown(this.qKey)) this.toggleQuestLog();
 
     const jPressed = Phaser.Input.Keyboard.JustDown(this.jKey);
     if (jPressed && !this.dialogContainer && !this.questLogContainer) {
       this.tryWork();
+    }
+  }
+
+  /** Shared by the E key and the touch Interact button. */
+  private handleInteractPress(): void {
+    if (this.questLogContainer) return;
+    if (this.dialogContainer) {
+      this.dialogContainer.destroy();
+      this.dialogContainer = undefined;
+      this.activeShopBuilding = undefined;
+    } else if (this.nearNpc) {
+      this.talkToNpc(this.nearNpc);
+    } else if (this.nearBuilding) {
+      this.enterBuilding(this.nearBuilding);
+    }
+  }
+
+  /** Shared by the Q key and the touch Quest button. */
+  private toggleQuestLog(): void {
+    if (this.dialogContainer) return;
+    if (this.questLogContainer) {
+      this.questLogContainer.destroy();
+      this.questLogContainer = undefined;
+    } else {
+      this.showQuestLog();
     }
   }
 
@@ -651,10 +743,10 @@ export class TownScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     let vx = 0;
     let vy = 0;
-    if (this.cursors.left?.isDown || this.wasd.A.isDown) vx -= 1;
-    if (this.cursors.right?.isDown || this.wasd.D.isDown) vx += 1;
-    if (this.cursors.up?.isDown || this.wasd.W.isDown) vy -= 1;
-    if (this.cursors.down?.isDown || this.wasd.S.isDown) vy += 1;
+    if (this.cursors.left?.isDown || this.wasd.A.isDown || this.touchDpad.left) vx -= 1;
+    if (this.cursors.right?.isDown || this.wasd.D.isDown || this.touchDpad.right) vx += 1;
+    if (this.cursors.up?.isDown || this.wasd.W.isDown || this.touchDpad.up) vy -= 1;
+    if (this.cursors.down?.isDown || this.wasd.S.isDown || this.touchDpad.down) vy += 1;
 
     const len = Math.hypot(vx, vy) || 1;
     body.setVelocity((vx / len) * MOVE_SPEED, (vy / len) * MOVE_SPEED);
@@ -865,17 +957,26 @@ export class TownScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5, 0);
-    const itemLines = SHOP_ITEMS.map((item, i) =>
-      this.add
+    const itemLines = SHOP_ITEMS.map((item, i) => {
+      const line = this.add
         .text(0, goldLine.y + 20 + i * 18, `${i + 1}. ${item.name} — ${item.cost}g`, {
           fontFamily: 'monospace',
           fontSize: '11px',
           color: '#dfe4f2',
         })
-        .setOrigin(0.5, 0),
-    );
+        .setOrigin(0.5, 0);
+      if (this.isTouchDevice) {
+        line.setInteractive();
+        line.on('pointerdown', () => this.tryPurchase(i));
+      }
+      return line;
+    });
     const hint = this.add
-      .text(0, boxH / 2 - 14, 'Press 1-3 to buy · E to leave', { fontFamily: 'monospace', fontSize: '10px', color: '#9aa4c0' })
+      .text(0, boxH / 2 - 14, this.isTouchDevice ? 'Tap an item to buy · E to leave' : 'Press 1-3 to buy · E to leave', {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#9aa4c0',
+      })
       .setOrigin(0.5);
     container.add([bg, titleText, flavorText, goldLine, ...itemLines, hint]);
     this.dialogContainer = container;
