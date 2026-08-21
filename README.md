@@ -10,6 +10,13 @@ real threats (gnolls, the Goo, Tengu's assassin cult from the Prison
 level), and one NPC is herself a delver just back from a run. This is
 step one of a longer-term plan toward a VR version of the same world.
 
+## Play it online
+
+Live at **https://ohitsmiko1.github.io/pixelpalace/** — works from any
+device (including tablets/phones, with on-screen touch controls) once
+[GitHub Pages is enabled](#deployment) for this repo, no local setup or
+matching WiFi network required.
+
 ## v0 (current)
 
 - **Character select** — 4 hero archetypes (Warrior, Mage, Rogue,
@@ -95,7 +102,19 @@ npm run build    # production build to dist/
 
 To test on a phone/tablet, make sure it's on the same WiFi network as the
 machine running `npm run dev`, then open the "Network" URL Vite prints
-(not `localhost`) in that device's browser.
+(not `localhost`) in that device's browser. If your devices aren't on
+the same network (different WiFi, hotspot, etc.), use the live deployed
+version instead — see [Play it online](#play-it-online) above.
+
+## Deployment
+
+`.github/workflows/deploy.yml` builds and deploys `dist/` to GitHub
+Pages automatically on every push to `main`. **One-time setup** (repo
+owner only, can't be done from a workflow file): go to this repo's
+**Settings → Pages → Build and deployment → Source**, and set it to
+**"GitHub Actions"**. After that, the site stays live at
+`https://ohitsmiko1.github.io/pixelpalace/` and updates automatically
+with every merge — no further action needed.
 
 ## Art pipeline
 
