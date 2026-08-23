@@ -55,6 +55,14 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     const save = loadGame();
     if (save) this.createContinueBanner(save);
+
+    this.add
+      .text(width / 2, this.scale.height - 10, 'Unofficial fan project — not affiliated with Shattered Pixel Dungeon', {
+        fontFamily: 'monospace',
+        fontSize: '9px',
+        color: '#5a6180',
+      })
+      .setOrigin(0.5, 1);
   }
 
   private createContinueBanner(save: SaveData): void {
