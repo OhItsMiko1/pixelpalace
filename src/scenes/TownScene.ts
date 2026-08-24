@@ -13,6 +13,7 @@ import { CHARACTER_CLASSES, type Alignment } from '../data/characters';
 import { NPC_SPECS, getScheduleTarget, type NpcSpec } from '../data/npcs';
 import { same, type ByAlignment } from '../data/alignment';
 import { saveGame } from '../systems/SaveSystem';
+import { soundSystem } from '../systems/SoundSystem';
 
 interface InteractionContext {
   alignment: Alignment;
@@ -82,6 +83,7 @@ export class TownScene extends Phaser.Scene {
   private eKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
   private jKey!: Phaser.Input.Keyboard.Key;
+  private mKey!: Phaser.Input.Keyboard.Key;
   private shopKeys: Phaser.Input.Keyboard.Key[] = [];
   private timeSkipKey?: Phaser.Input.Keyboard.Key;
   private isTouchDevice = false;
@@ -120,6 +122,8 @@ export class TownScene extends Phaser.Scene {
   private uiCamera!: Phaser.Cameras.Scene2D.Camera;
   private alignment!: Alignment;
   private saveTimer = 0;
+  private footstepTimer = 0;
+  private lastPhase: Phase | null = null;
   private readonly persistOnUnload = () => this.persist();
 
   constructor() {
@@ -128,6 +132,10 @@ export class TownScene extends Phaser.Scene {
 
   create(): void {
     this.isTouchDevice = this.sys.game.device.input.touch;
+    // create() only ever runs as a direct result of a click on the character
+    // select screen, so this still counts as "inside a user gesture" for
+    // browsers that block audio until one occurs.
+    soundSystem.unlock();
     if (!gameState.selectedCharacter) {
       gameState.selectedCharacter = CHARACTER_CLASSES[0];
     }
@@ -186,6 +194,7 @@ export class TownScene extends Phaser.Scene {
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
+    this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
     this.shopKeys = [
       this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
@@ -506,7 +515,7 @@ export class TownScene extends Phaser.Scene {
 
     this.addUI(
       this.add
-        .text(10, this.scale.height - 20, 'Q: Quest Log', {
+        .text(10, this.scale.height - 20, 'Q: Quest Log · M: Mute', {
           fontFamily: 'monospace',
           fontSize: '10px',
           color: '#9aa4c0',
@@ -671,6 +680,11 @@ export class TownScene extends Phaser.Scene {
     this.updateNearInteractables();
     this.updateJobPrompt();
     this.updateHud();
+    this.updateFootsteps(dt);
+
+    const phase = this.clock.getPhase();
+    if (this.lastPhase !== null && phase !== this.lastPhase) soundSystem.phaseChime(phase);
+    this.lastPhase = phase;
 
     if (Phaser.Input.Keyboard.JustDown(this.eKey)) this.handleInteractPress();
 
@@ -686,12 +700,32 @@ export class TownScene extends Phaser.Scene {
     if (jPressed && !this.dialogContainer && !this.questLogContainer) {
       this.tryWork();
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this.mKey)) {
+      const muted = soundSystem.toggleMuted();
+      this.showToast(muted ? 'Sound muted (M to unmute)' : 'Sound on');
+    }
+  }
+
+  private updateFootsteps(dt: number): void {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const moving = !this.dialogContainer && !this.questLogContainer && (body.velocity.x !== 0 || body.velocity.y !== 0);
+    if (!moving) {
+      this.footstepTimer = 0;
+      return;
+    }
+    this.footstepTimer -= dt;
+    if (this.footstepTimer <= 0) {
+      this.footstepTimer = 0.28;
+      soundSystem.footstep();
+    }
   }
 
   /** Shared by the E key and the touch Interact button. */
   private handleInteractPress(): void {
     if (this.questLogContainer) return;
     if (this.dialogContainer) {
+      soundSystem.menuMove();
       this.dialogContainer.destroy();
       this.dialogContainer = undefined;
       this.activeShopBuilding = undefined;
@@ -705,6 +739,7 @@ export class TownScene extends Phaser.Scene {
   /** Shared by the Q key and the touch Quest button. */
   private toggleQuestLog(): void {
     if (this.dialogContainer) return;
+    soundSystem.menuMove();
     if (this.questLogContainer) {
       this.questLogContainer.destroy();
       this.questLogContainer = undefined;
@@ -819,11 +854,13 @@ export class TownScene extends Phaser.Scene {
     if (job.requiresPhase && this.clock.getPhase() !== job.requiresPhase) return;
     if (!this.jobs.canWork(this.clock.getDay())) {
       this.showToast('Already worked today.');
+      soundSystem.error();
       return;
     }
     this.jobs.work(this.clock.getDay());
     this.currency.earn(job.gold);
     this.showToast(`${job.successText} +${job.gold} gold`);
+    soundSystem.jobComplete();
   }
 
   private get interactionContext(): InteractionContext {
@@ -838,6 +875,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private enterBuilding(b: Building): void {
+    soundSystem.interact();
     const ctx = this.interactionContext;
     this.applyRestores(resolve(b.restores, ctx));
     this.reputation.adjust(1);
@@ -852,6 +890,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private talkToNpc(npc: NpcRuntime): void {
+    soundSystem.interact();
     this.applyRestores({ social: npc.spec.socialRestore[this.alignment] });
     this.reputation.adjust(1);
     this.promptText.setVisible(false);
@@ -867,8 +906,10 @@ export class TownScene extends Phaser.Scene {
       if (quest.reward.gold) this.currency.earn(quest.reward.gold);
       const goldPart = quest.reward.gold ? `, +${quest.reward.gold} gold` : '';
       this.showToast(`Quest complete: ${quest.name}! +${quest.reward.reputation} reputation${goldPart}`);
+      soundSystem.questComplete();
     } else if (result.stepAdvanced) {
       this.showToast('Objective complete!');
+      soundSystem.questStep();
     }
   }
 
@@ -988,8 +1029,10 @@ export class TownScene extends Phaser.Scene {
     if (this.currency.spend(item.cost)) {
       this.applyRestores(item.needs);
       this.showToast(`Bought ${item.name}!`);
+      soundSystem.purchase();
     } else {
       this.showToast('Not enough gold.');
+      soundSystem.error();
     }
     // Redraw so the gold balance shown in the dialog stays current.
     this.dialogContainer?.destroy();

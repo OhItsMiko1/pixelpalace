@@ -3,6 +3,7 @@ import { CHARACTER_CLASSES, type CharacterClass } from '../data/characters';
 import { gameState } from '../state/gameState';
 import { loadGame, type SaveData } from '../systems/SaveSystem';
 import { formatClockString } from '../systems/DayNightCycle';
+import { soundSystem } from '../systems/SoundSystem';
 
 const CARD_W = 168;
 const CARD_H = 148;
@@ -97,6 +98,8 @@ export class CharacterSelectScene extends Phaser.Scene {
     container.on('pointerover', () => bg.setFillStyle(0x1e3a26, 1));
     container.on('pointerout', () => bg.setFillStyle(0x14251a, 1));
     container.on('pointerdown', () => {
+      soundSystem.unlock();
+      soundSystem.menuSelect();
       gameState.selectedCharacter = cls;
       gameState.resumeSave = save;
       this.scene.start('Town');
@@ -148,9 +151,17 @@ export class CharacterSelectScene extends Phaser.Scene {
     container.setSize(CARD_W, CARD_H);
     container.setInteractive({ useHandCursor: true });
 
-    container.on('pointerover', () => bg.setFillStyle(0x262b40, 1));
+    container.on('pointerover', () => {
+      bg.setFillStyle(0x262b40, 1);
+      soundSystem.unlock();
+      soundSystem.menuMove();
+    });
     container.on('pointerout', () => bg.setFillStyle(0x1b1f2e, 1));
-    container.on('pointerdown', () => this.selectCharacter(cls.id));
+    container.on('pointerdown', () => {
+      soundSystem.unlock();
+      soundSystem.menuSelect();
+      this.selectCharacter(cls.id);
+    });
   }
 
   private selectCharacter(id: string): void {
@@ -177,6 +188,8 @@ export class CharacterSelectScene extends Phaser.Scene {
     container.setInteractive({ useHandCursor: true });
     container.on('pointerdown', () => {
       if (!this.selectedId) return;
+      soundSystem.unlock();
+      soundSystem.menuSelect();
       gameState.selectedCharacter =
         CHARACTER_CLASSES.find((c) => c.id === this.selectedId) ?? null;
       this.scene.start('Town');

@@ -85,6 +85,12 @@ matching WiFi network required.
   +12 gold), villains can **Pick a Pocket** at Market Row (any time,
   +12 gold). Once per in-game day each — a HUD prompt shows when it's
   available and switches to "Already worked today" on cooldown.
+- **Sound** — chiptune-style SFX (footsteps, talking to NPCs, entering
+  buildings, buying/getting paid, quest progress/completion, dawn/dusk/
+  night transitions) and menu blips on character select, all synthesized
+  live with the Web Audio API — no audio files, same "we made this"
+  approach as the pixel art. Press `M` in-game to mute/unmute (remembered
+  across sessions).
 - **Save/load** — progress (needs, reputation, quest progress, gold, job
   cooldown, in-game time, day count, chosen character) autosaves to
   `localStorage` every 10 seconds and on tab close. Character select
