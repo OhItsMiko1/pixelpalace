@@ -1,14 +1,24 @@
 # Pixel Palace
 
-A life-sim set in the world *around* the dungeon — the actual [Shattered
-Pixel Dungeon](https://shatteredpixel.com/shatteredpd/) universe, but
-you're not the one delving. Pick a hero or a villain archetype and live
-in the town outside the gate: Sims-style needs, a day/night clock,
-buildings to visit. Flavor text and quest content lean on real canon
-where it fits — the gate leads down to the actual Sewers, NPCs reference
-real threats (gnolls, the Goo, Tengu's assassin cult from the Prison
-level), and one NPC is herself a delver just back from a run. This is
-step one of a longer-term plan toward a VR version of the same world.
+> **Unofficial fan project.** Pixel Palace is an independent, non-commercial
+> tribute inspired by [Shattered Pixel Dungeon](https://shatteredpixel.com/shatteredpd/).
+> It is not affiliated with, endorsed by, or produced in association with
+> Shattered Pixel Dungeon or its developers. All art, code, and original
+> characters in this project are our own work; a handful of NPC lines and
+> flavor text reference SPD's public lore (place names, monster names) as
+> an homage, not reproduced content.
+
+A life-sim set in a town *around* the dungeon — inspired by the
+[Shattered Pixel Dungeon](https://shatteredpixel.com/shatteredpd/)
+universe, but you're not the one delving. Pick a hero or a villain
+archetype and live in the town outside the gate: Sims-style needs, a
+day/night clock, buildings to visit. A few bits of flavor text and quest
+content nod to that universe's public lore where it fits — the gate
+leads down to a dungeon whose first level everyone just calls "the
+Sewers," NPCs mention rumored threats (gnolls, "the Goo," a cult tied to
+a name called Tengu), and one NPC is herself a delver just back from a
+run. This is step one of a longer-term plan toward a VR version of the
+same world.
 
 ## Play it online
 
@@ -139,6 +149,12 @@ python3 tools/gen_npcs.py
 - More alignment-exclusive mechanics beyond the guild hall and the gate
 - More questlines, quest chains that branch, quest-giver NPCs with their own dialogue
 - More ways to earn and spend gold — more jobs, more shops, alignment-flavored goods
-- Deeper Shattered Pixel Dungeon lore ties — more real floors/enemies/bosses referenced, maybe other delvers with their own stories
+- More Shattered Pixel Dungeon-inspired flavor — more floor/enemy names referenced as homage, maybe other delvers with their own stories
 - Multiple save slots, reputation-gated content
 - Eventually: a VR build of the same world (WebXR or a dedicated engine)
+
+## Copyright
+
+Copyright © 2026 OhItsMiko1. All rights reserved. See [LICENSE](LICENSE)
+— this is source-available, not open-source; no permission is granted
+to copy, modify, or redistribute without asking first.
