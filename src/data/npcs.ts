@@ -102,7 +102,7 @@ export const NPC_SPECS: NpcSpec[] = [
     id: 'finn',
     name: 'Old Finn',
     flavor: {
-      hero: '"Good blade needs good balance. You want the truth or the flattering answer?"',
+      hero: '"Good blade needs good balance. Dagger, mace, glaive — doesn\'t matter which, if the weight\'s wrong it\'ll get you killed. You want the truth or the flattering answer?"',
       villain: '"Cash up front. I don\'t extend credit to folks who don\'t give their real name."',
     },
     socialRestore: same(8),
@@ -134,7 +134,7 @@ export const NPC_SPECS: NpcSpec[] = [
     id: 'mira',
     name: 'Mira the Scrivener',
     flavor: {
-      hero: '"Careful with that ink, it still bites." She taps a shelf of scrolls. "This one\'s about the old maps, if you\'re curious."',
+      hero: '"Careful with that ink, it still bites." She taps a shelf of scrolls — half of them Scrolls of Identify nobody\'s bothered to read twice. "This one\'s about the old maps, if you\'re curious."',
       villain: 'She doesn\'t stop writing. "I don\'t sell rumors. I sell parchment." A pause. "Rumors cost extra."',
     },
     socialRestore: same(8),
@@ -147,8 +147,8 @@ export const NPC_SPECS: NpcSpec[] = [
     id: 'silas',
     name: 'Silas the Well-Keeper',
     flavor: {
-      hero: '"Fetch water if you like — just mind the bucket rope, it\'s seen better decades."',
-      villain: '"Well\'s just a well." He doesn\'t quite meet your eyes. "Unless you\'re asking the right way."',
+      hero: '"Fetch water if you like — just mind the bucket rope, it\'s seen better decades." He nods down the shaft. "Old-timers say this used to connect to dwarf diggings, before the Caves flooded. Probably nonsense."',
+      villain: '"Well\'s just a well." He doesn\'t quite meet your eyes. "Unless you\'re asking the right way — and even then, what\'s down there isn\'t gold. Just old dwarf bones and a token or two."',
     },
     socialRestore: same(6),
     schedule: [
@@ -160,7 +160,7 @@ export const NPC_SPECS: NpcSpec[] = [
     id: 'kessa',
     name: 'Kessa the Freerunner',
     flavor: {
-      hero: '"Two floors into the Sewers and back out again — rats, mostly, and one gnoll scout that nearly had my throat." She flexes a bandaged hand. "Worth it, for what I found."',
+      hero: '"Two floors into the Sewers and back — rats, mostly, and one gnoll scout that nearly had my throat." She holds up a scorched scrap of parchment. "Worth it, for what I found — if someone can tell me what it says."',
       villain: 'She sizes you up before answering. "Sewers are rough this season. Wouldn\'t recommend it — unless you\'ve got a reason I\'d understand."',
     },
     socialRestore: same(8),

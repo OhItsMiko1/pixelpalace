@@ -19,12 +19,12 @@ export const JOBS: ByAlignment<JobSpec> = {
     requiresPhase: 'day',
     gold: 12,
     actionLabel: 'Take a Bounty',
-    successText: 'You clear a small bounty posted on the board. Not glamorous, but it pays.',
+    successText: 'You clear a small bounty — a rat nest nobody wanted to deal with, no sign of the Rat King they\'re rumored to answer to. Not glamorous, but it pays.',
   },
   villain: {
     buildingId: 'market',
     gold: 12,
     actionLabel: 'Pick a Pocket',
-    successText: 'A distracted shopper, a loose coin purse, a clean getaway.',
+    successText: 'A distracted shopper, a loose coin purse, a clean getaway — nothing a proper Thief would even blink at.',
   },
 };
