@@ -284,9 +284,9 @@ export class TownScene extends Phaser.Scene {
         w: 96,
         h: 72,
         flavor: {
-          hero: 'Stalls of dried mushrooms, cured meats, and suspiciously glowing potions. You grab a quick bite.',
+          hero: 'Stalls of dried mushrooms, cured meats, and a locked case of unlabeled vials — the vendor swears one\'s a Potion of Strength. You grab a quick bite.',
           villain:
-            'The vendor "loses count" of your change more than once. You don\'t correct her. You grab a quick bite.',
+            'The vendor "loses count" of your change more than once, too busy eyeing a ring in the case marked Ring of Haggler — wasted on her, honestly. You don\'t correct her. You grab a quick bite.',
         },
         restores: same({ hunger: 35 }),
         shop: true,
@@ -319,8 +319,8 @@ export class TownScene extends Phaser.Scene {
             return 'Conversation dips the moment you walk in. Nobody asks you to sit. You linger near the door anyway.';
           }
           return phase === 'day'
-            ? 'Old dungeon maps line the walls. A veteran waves you over to run a few drills before the stories start. Good company, and you leave sharper for it.'
-            : 'Old dungeon maps line the walls. A few familiar faces trade stories about the depths below town. Good company.';
+            ? 'Old dungeon maps line the walls, next to a bounty board — a rat nest past the outer wall, something skittish that might be a Bandit. A veteran waves you over to run a few drills before the stories start. Good company, and you leave sharper for it.'
+            : 'Old dungeon maps line the walls, next to a bounty board half-buried in old flyers for rats and one stubborn Bandit nobody\'s caught yet. A few familiar faces trade stories about the depths below town. Good company.';
         },
         restores: ({ alignment, phase }) =>
           alignment === 'villain' ? { social: 12 } : { social: 40, ...(phase === 'day' ? { energy: 15 } : {}) },
@@ -340,7 +340,7 @@ export class TownScene extends Phaser.Scene {
             return 'You press a palm to the humming metal. For a moment it feels like it *wants* you inside. Past the gap the air already smells like the Sewers everyone whispers about. You slip a hand through just wide enough to grab what\'s in reach.';
           }
           if (alignment === 'villain') {
-            return 'A heavy iron gate, chained shut, humming faintly. Delvers who\'ve come back talk about rats, gnolls, and something they just call "the Goo." Too many eyes around right now — better after dark.';
+            return 'A heavy iron gate, chained shut, humming faintly. Delvers who\'ve come back talk about rats, gnolls, something they just call "the Goo" — and one who swears an Eye blinked back at her from the dark. Too many eyes around right now — better after dark.';
           }
           return 'A heavy iron gate, chained shut, humming faintly. A sign reads: "Closed for renovation — VR wing coming soon." Somewhere below, the Sewers wait for whoever\'s next.';
         },
@@ -355,7 +355,7 @@ export class TownScene extends Phaser.Scene {
         w: 70,
         h: 78,
         flavor: same(
-          'Old Finn hammers out a dent that wasn\'t there yesterday. "Sit, catch your breath a minute." The forge\'s warmth seeps into tired legs.',
+          'Old Finn hammers out a dent that wasn\'t there yesterday — looks like a dagger, maybe a short sword by the curve of it. "Sit, catch your breath a minute." The forge\'s warmth seeps into tired legs.',
         ),
         restores: same({ energy: 20, hunger: 10 }),
       },
@@ -381,7 +381,7 @@ export class TownScene extends Phaser.Scene {
         h: 70,
         flavor: {
           hero: "The well water is cold and clean. Somebody's left a tin cup on the rim for anyone who needs it.",
-          villain: "The well water is cold and clean — and the loose stone at its base hides more than water, if you know where to look.",
+          villain: "The well water is cold and clean — and the loose stone at its base hides more than water, if you know where to look. Silas isn't the only one who's heard rumors of an old dwarf token down there.",
         },
         restores: same({ hunger: 10, energy: 10 }),
       },
